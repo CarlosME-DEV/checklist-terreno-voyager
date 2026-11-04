@@ -1,7 +1,7 @@
 {
-  "name": "Check List Terreno · Retrofit TRANE Voyager",
+  "name": "Check List Terreno HVAC · Efintel",
   "short_name": "Check List",
-  "description": "Check list de terreno para la revisión de ventiladores y VDF previa al retrofit TRANE Voyager.",
+  "description": "Check list de terreno para levantamiento de equipos HVAC: ventiladores, motores y VDF, con fotos y firma.",
   "lang": "es",
   "start_url": "./",
   "scope": "./",

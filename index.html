@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f3d5e">
-<title>Check List Terreno Voyager</title>
+<title>Check List Terreno HVAC</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -15,6 +15,16 @@
 .pill.off{background:#fff1d6;color:#a15c00}
 .upd{position:fixed;left:12px;right:12px;top:12px;z-index:60;background:#15202b;color:#fff;border-radius:12px;padding:10px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.3)}
 .upd span{flex:1}
+/* equipos dinámicos */
+.eqs{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))!important}
+.eq-l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
+.eqview{background:#fff;color:#0f3d5e;border:0;border-radius:10px;min-height:44px;padding:0 10px;font-weight:600;max-width:240px}
+.eqcount{display:inline-grid;place-items:center;min-width:28px;height:28px;border-radius:999px;background:#0f3d5e;color:#fff;font-size:14px;vertical-align:middle;margin-left:6px;padding:0 8px}
+.eqlist{display:grid;gap:8px;margin-bottom:8px}
+.eqrow{display:grid;grid-template-columns:auto 1fr 1.4fr 1.2fr auto;gap:10px;align-items:end;background:#fff;border:1px solid #d5dde3;border-radius:14px;padding:10px 12px}
+.eqrow .num{align-self:center}
+.eqrow .eqdel{min-height:44px}
+@media (max-width:760px){.eqrow{grid-template-columns:auto 1fr}.eqrow .field,.eqrow .eqdel{grid-column:2}.eqview{max-width:140px}}
 /* encabezado Efintel */
 .brand{display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:center;background:#fff;border:1px solid #d5dde3;border-top:5px solid #0079a9;border-radius:14px;padding:14px 18px;margin:0 0 14px}
 .brand img{height:64px;width:auto;display:block}
@@ -207,7 +217,7 @@ dialog::backdrop{background:rgba(10,25,40,.55)}
 <!-- =================== PANTALLA: LISTA =================== -->
 <div id="app">
 <section id="home">
-  <div class="top"><div class="top-row"><h1>Check List de Terreno · Retrofit TRANE Voyager</h1></div></div>
+  <div class="top"><div class="top-row"><h1>Check List de Terreno HVAC · Efintel</h1></div></div>
   <main>
     <div id="homeBrand"></div>
     <div class="appbar">
@@ -233,6 +243,7 @@ dialog::backdrop{background:rgba(10,25,40,.55)}
     <div class="top-row">
       <button class="tbtn" id="btnBack" aria-label="Volver a la lista">◀ Lista</button>
       <h1 id="ftitle">Inspección</h1>
+      <select id="eqView" class="eqview" aria-label="Equipo que se muestra"></select>
       <span class="save" id="saveState"></span>
     </div>
     <nav class="chips" id="chips"></nav>
@@ -272,7 +283,6 @@ dialog::backdrop{background:rgba(10,25,40,.55)}
    DEFINICIÓN DEL CHECK LIST (Anexo)
    Fila: [n°, tarea, placeholder de medición (opcional)]
    ============================================================ */
-const EQ = ['L1','C1','L5'];
 const SECTIONS = [
   {id:'A', title:'A. Seguridad previa al trabajo', groups:[{rows:[
     [1,'Permiso de trabajo emitido y corte de climatización coordinado con el cliente'],
@@ -385,7 +395,7 @@ function brandHTML(){
   return `<header class="brand">
     <img src="logo.png" alt="Efintel — eficiencia energética inteligente">
     <div><div class="b1">${EFINTEL.sistema}</div><div class="b2">${EFINTEL.documento}</div>
-      <div class="b3">Anexo: Check list de terreno · Revisión de ventiladores y VDF previa al retrofit TRANE Voyager</div></div>
+      <div class="b3">Check list de terreno · Revisión de ventiladores y VDF de equipos HVAC</div></div>
     <div class="bc">${EFINTEL.direccion}<br><a href="mailto:${EFINTEL.email}">${EFINTEL.email}</a><br><a href="tel:${EFINTEL.fono.replace(/\s/g,'')}">${EFINTEL.fono}</a><br><a href="https://${EFINTEL.web}" target="_blank" rel="noopener">${EFINTEL.web}</a></div>
   </header>`;
 }
@@ -442,30 +452,44 @@ const dbPhotosOf = async id => db ? rq(store('photos').index('insp').getAll(id))
 /* ============================================================
    MODELO
    ============================================================ */
+const newEquipo = (e={}) => ({id: uid(), tag: e.tag||'', desc: e.desc||'', ubic: e.ubic||''});
 function newInsp(base){
   const h = base?.header || {};
   return {
     id: uid(), created: Date.now(), updated: Date.now(),
     header: {
-      fecha: todayISO(), cliente: h.cliente || 'Mall Plaza Iquique', equipo: h.equipo || 'TRANE Voyager (3 und.)',
-      tag: h.tag || 'L1 / C1 / L5', tecControl: h.tecControl || '', tecServicio: h.tecServicio || '', horaIni:'', horaFin:''
+      fecha: todayISO(), cliente: h.cliente || '', trabajo: h.trabajo || 'Levantamiento de equipos HVAC', ot: h.ot || '',
+      tecControl: h.tecControl || '', tecServicio: h.tecServicio || '', horaIni:'', horaFin:''
     },
-    cells:{}, obs:{}, noExh:{L1:false,C1:false,L5:false}, final:{}, finalObs:{}, obsGen:'',
+    equipos: base?.equipos?.length ? base.equipos.map(newEquipo) : [newEquipo()],
+    cells:{}, obs:{}, noExh:{}, final:{}, finalObs:{}, obsGen:'',
     firmas: Object.fromEntries(SIGS.map(s=>[s.id,{nombre: base?.firmas?.[s.id]?.nombre || '', fecha:'', img:'', ts:0}])),
   };
 }
-let cur = null, curPhotos = [];
+/* Inspecciones creadas con la versión de 3 equipos fijos (L1, C1, L5) */
+function migrate(ins){
+  ['cells','obs','noExh','final','finalObs','firmas'].forEach(k=>ins[k]=ins[k]||{});
+  if(!Array.isArray(ins.equipos)){
+    ins.equipos = ['L1','C1','L5'].map(id=>({id, tag:id, desc: ins.header?.equipo || '', ubic:''}));
+    ins.header.trabajo = ins.header.trabajo || 'Inspección y diagnóstico previo al Retrofit';
+    ins.header.ot = ins.header.ot || '';
+  }
+  return ins;
+}
+let cur = null, curPhotos = [], EQ = [], eqFilter = '';
+const eqIds = ins => (ins.equipos||[]).map(e=>e.id);
+const eqName = (id, ins=cur) => { const i=ins.equipos.findIndex(e=>e.id===id); return i<0 ? '' : (ins.equipos[i].tag.trim() || `Equipo ${i+1}`); };
 const cell = (k,eq) => cur.cells[k+'|'+eq] || (cur.cells[k+'|'+eq] = {s:'', v:''});
 const isNoExh = (row, eq) => row.exhaust && cur.noExh[eq];
 const effS = (k,eq,ins=cur) => (ROW[k].exhaust && ins.noExh[eq]) ? 'na' : (ins.cells[k+'|'+eq]?.s || '');
 const effF = (c,eq,ins=cur) => (c==='ext' && ins.noExh[eq]) ? 'NA' : (ins.final[c+'|'+eq] || '');
 
 function progress(ins){
-  let tot=0, done=0; const bySec={};
-  ROWS.forEach(r=>{ EQ.forEach(eq=>{ tot++; const b=bySec[r.sec]||(bySec[r.sec]={t:0,d:0}); b.t++; if(effS(r.key,eq,ins)){done++; b.d++;} }); });
+  let tot=0, done=0; const bySec={}; const EQ=eqIds(ins);
+  ROWS.forEach(r=>{ const b=bySec[r.sec]||(bySec[r.sec]={t:0,d:0}); EQ.forEach(eq=>{ tot++; b.t++; if(effS(r.key,eq,ins)){done++; b.d++;} }); });
   const f={t:0,d:0}; FINAL.forEach(c=>EQ.forEach(eq=>{ tot++; f.t++; if(effF(c.id,eq,ins)){done++; f.d++;} })); bySec.F=f;
   const sg={t:SIGS.length,d:SIGS.filter(s=>ins.firmas[s.id]?.img).length}; bySec.S=sg; tot+=sg.t; done+=sg.d;
-  return {pct: Math.round(done*100/tot), bySec};
+  return {pct: tot ? Math.round(done*100/tot) : 0, bySec};
 }
 
 /* ============================================================
@@ -492,14 +516,14 @@ async function showHome(){
   if(saveT) await saveNow();
   cur=null; curPhotos=[];
   $('#formView').classList.add('hidden'); $('#home').classList.remove('hidden');
-  const list = (await dbAll('insp')).sort((a,b)=>b.updated-a.updated);
+  const list = (await dbAll('insp')).map(migrate).sort((a,b)=>b.updated-a.updated);
   const box=$('#ilist');
   if(!list.length){ box.innerHTML='<div class="empty card">Aún no hay inspecciones. Toca <b>+ Nueva inspección</b> para comenzar.</div>'; return; }
   box.innerHTML = list.map(i=>{
     const p=progress(i), signed=SIGS.every(s=>i.firmas[s.id]?.img);
     return `<div class="icard" data-id="${i.id}">
-      <div><h3>${esc(i.header.cliente)} · ${esc(fmtDate(i.header.fecha))}${signed?'<span class="badge ok">Firmado</span>':'<span class="badge pend">En curso</span>'}</h3>
-      <div class="meta">${esc(i.header.equipo)} · ${esc(i.header.tag)} · Téc.: ${esc(i.header.tecControl||'—')} · Modificado ${fmtTs(i.updated)}</div>
+      <div><h3>${esc(i.header.cliente||'Sin cliente')} · ${esc(fmtDate(i.header.fecha))}${signed?'<span class="badge ok">Firmado</span>':'<span class="badge pend">En curso</span>'}</h3>
+      <div class="meta">${esc(i.header.trabajo||'')} · ${i.equipos.length} equipo${i.equipos.length===1?'':'s'}${i.equipos.length?': '+esc(i.equipos.map(e=>eqName(e.id,i)).join(', ')):''} · Téc.: ${esc(i.header.tecControl||'—')} · Modificado ${fmtTs(i.updated)}</div>
       <div class="bar"><i style="width:${p.pct}%"></i></div><div class="meta">${p.pct}% completado</div></div>
       <div class="iacts"><button class="btn primary" data-act="open">Abrir</button><button class="btn" data-act="dup">Duplicar</button><button class="btn" data-act="json">.json</button><button class="btn danger" data-act="del">Eliminar</button></div>
     </div>`;
@@ -507,9 +531,9 @@ async function showHome(){
 }
 $('#ilist').addEventListener('click', async e=>{
   const b=e.target.closest('[data-act]'); if(!b) return;
-  const id=b.closest('.icard').dataset.id; const list=await dbAll('insp'); const ins=list.find(x=>x.id===id); if(!ins) return;
+  const id=b.closest('.icard').dataset.id; const list=await dbAll('insp'); const ins=list.find(x=>x.id===id); if(!ins) return; migrate(ins);
   if(b.dataset.act==='open') openInsp(ins);
-  if(b.dataset.act==='dup'){ const n=newInsp(ins); await dbPut('insp',n); toast('Copia creada con los datos de cabecera'); showHome(); }
+  if(b.dataset.act==='dup'){ const n=newInsp(ins); await dbPut('insp',n); toast('Copia creada con la cabecera y la lista de equipos'); showHome(); }
   if(b.dataset.act==='json') exportJson(ins);
   if(b.dataset.act==='del'){
     if(await confirmDlg('Eliminar inspección', `¿Eliminar la inspección de <b>${esc(ins.header.cliente)} del ${esc(fmtDate(ins.header.fecha))}</b> y sus fotos? Esta acción no se puede deshacer.`, 'Eliminar')){
@@ -525,7 +549,7 @@ $('#btnBack').onclick = showHome;
    FORMULARIO
    ============================================================ */
 async function openInsp(ins){
-  cur = ins; ['cells','obs','noExh','final','finalObs','firmas'].forEach(k=>cur[k]=cur[k]||{});
+  cur = migrate(ins); eqFilter = '';
   curPhotos = await dbPhotosOf(ins.id);
   $('#home').classList.add('hidden'); $('#formView').classList.remove('hidden');
   renderForm(); window.scrollTo(0,0);
@@ -535,9 +559,9 @@ async function openInsp(ins){
 function eqCell(r, eq){
   const c = cur.cells[r.key+'|'+eq] || {}; const s=effS(r.key,eq);
   return `<div class="eq${isNoExh(r,eq)?' disabled':''}" data-eq="${eq}">
-    <div class="eq-l">EQUIPO ${eq}</div>
+    <div class="eq-l">${esc(eqName(eq))}</div>
     ${r.m?`<input class="val" data-f="v" placeholder="${esc(r.m)}" value="${esc(c.v)}" autocomplete="off">`:''}
-    <div class="seg">${['ok','bad','na'].map(k=>`<button type="button" data-s="${k}" class="${s===k?'on':''}" aria-label="${eq} ${k==='ok'?'en buen estado':k==='bad'?'con falla':'no aplica'}">${SYM[k]}</button>`).join('')}</div>
+    <div class="seg">${['ok','bad','na'].map(k=>`<button type="button" data-s="${k}" class="${s===k?'on':''}" aria-label="${esc(eqName(eq))} ${k==='ok'?'en buen estado':k==='bad'?'con falla':'no aplica'}">${SYM[k]}</button>`).join('')}</div>
   </div>`;
 }
 function taskHTML(r){
@@ -550,24 +574,45 @@ function taskHTML(r){
   </div>`;
 }
 
+function equiposHTML(){
+  return `<h2 class="sec-title" id="s-Q">Equipos a inspeccionar <span class="eqcount">${cur.equipos.length}</span></h2>
+  <div class="note">Agrega un equipo por cada unidad que revises en terreno. Cada equipo aparece como una columna en todas las tareas y en el PDF. Al eliminar un equipo se borran sus marcas y mediciones.</div>
+  <div class="eqlist">${cur.equipos.map((e,i)=>`<div class="eqrow" data-eqid="${e.id}">
+    <span class="num">${i+1}</span>
+    <div class="field"><label>Tag / N° de serie</label><input data-eqf="tag" value="${esc(e.tag)}" placeholder="Equipo ${i+1}" autocomplete="off"></div>
+    <div class="field"><label>Marca / modelo / capacidad</label><input data-eqf="desc" value="${esc(e.desc)}" placeholder="Ej.: Rooftop 50 TR" autocomplete="off"></div>
+    <div class="field"><label>Ubicación</label><input data-eqf="ubic" value="${esc(e.ubic)}" placeholder="Ej.: Techo sector norte" autocomplete="off"></div>
+    <button type="button" class="btn danger eqdel" data-eqdel="${e.id}" aria-label="Eliminar ${esc(eqName(e.id))}">Eliminar</button>
+  </div>`).join('') || '<div class="empty card">No hay equipos. Agrega al menos uno para llenar el check list.</div>'}</div>
+  <button type="button" class="btn primary" id="btnAddEq" style="margin:4px 0 6px">+ Agregar equipo</button>`;
+}
+function applyFilter(){
+  let st=$('#eqFilterCss'); if(!st){ st=document.createElement('style'); st.id='eqFilterCss'; document.head.appendChild(st); }
+  st.textContent = eqFilter && EQ.includes(eqFilter) ? `#form .eqs .eq:not([data-eq="${eqFilter}"]){display:none} #form .eqs{grid-template-columns:1fr}` : '';
+  const sel=$('#eqView'); if(sel) sel.value = EQ.includes(eqFilter) ? eqFilter : '';
+}
+function renderEqView(){
+  $('#eqView').innerHTML = `<option value="">Ver: todos los equipos</option>` + cur.equipos.map(e=>`<option value="${e.id}">Ver solo: ${esc(eqName(e.id))}</option>`).join('');
+  applyFilter();
+}
 function renderForm(){
-  const h=cur.header;
+  const h=cur.header; EQ=eqIds(cur);
   const fld=(k,l,type='text',ro=false,now=false)=>`<div class="field"><label for="h-${k}">${l}</label>${now?'<div class="inrow">':''}<input id="h-${k}" type="${type}" data-h="${k}" value="${esc(h[k])}" ${ro?'readonly':''}>${now?`<button type="button" class="mini" data-now="${k}">Ahora</button></div>`:''}</div>`;
   let html = brandHTML() + `
   <h2 class="sec-title" id="s-H">Datos de la inspección</h2>
   <div class="note">En cada equipo marque <b>✓</b> (en buen estado), <b>✗</b> (con falla u observación) o <b>N/A</b> (no aplica). En las tareas de medición anote el valor y la unidad. Los ventiladores no se hacen girar: las pruebas de motores y VDF se realizan con las correas retiradas. <b>Toda tarea marcada con ✗ debe tener observación y registro fotográfico.</b></div>
   <div class="card"><div class="grid2">
     ${fld('fecha','Fecha','date')}${fld('cliente','Cliente y ubicación')}
-    ${fld('equipo','Equipo')}${fld('tag','Tag o N° de serie')}
+    ${fld('trabajo','Tipo de trabajo')}${fld('ot','N° OT / referencia')}
     ${fld('tecControl','Técnico Grupo de Control')}${fld('tecServicio','Técnico Grupo de Servicio Técnico')}
     ${fld('horaIni','Hora de inicio','time',false,true)}${fld('horaFin','Hora de término','time',false,true)}
-  </div></div>`;
+  </div></div>` + equiposHTML();
 
   SECTIONS.forEach(s=>{
     html += `<h2 class="sec-title" id="s-${s.id}">${esc(s.title)}</h2>`;
-    if(s.exhaust){
-      html += `<div class="note">Si el equipo no tiene ventilador de extracción, actívalo aquí y toda la columna quedará como N/A.</div>
-      <div class="noexh">${EQ.map(eq=>`<label class="toggle"><input type="checkbox" data-noexh="${eq}" ${cur.noExh[eq]?'checked':''}> ${eq} sin ventilador de extracción</label>`).join('')}</div>`;
+    if(s.exhaust && EQ.length){
+      html += `<div class="note">Si un equipo no tiene ventilador de extracción, actívalo aquí y toda su columna quedará como N/A.</div>
+      <div class="noexh">${EQ.map(eq=>`<label class="toggle"><input type="checkbox" data-noexh="${eq}" ${cur.noExh[eq]?'checked':''}> ${esc(eqName(eq))} sin ventilador de extracción</label>`).join('')}</div>`;
     }
     s.groups.forEach(g=>{
       if(g.title) html += `<div class="sub-title">${esc(g.title)}</div>`;
@@ -580,7 +625,7 @@ function renderForm(){
   <div class="ftable">${FINAL.map(c=>`<div class="task frow" id="f-${c.id}" data-final="${c.id}">
     <div class="task-h"><span class="txt"><b>${esc(c.t)}</b></span></div>
     <div class="eqs">${EQ.map(eq=>{ const v=effF(c.id,eq), dis=c.exhaust&&cur.noExh[eq];
-      return `<div class="eq${dis?' disabled':''}" data-eq="${eq}"><div class="eq-l">EQUIPO ${eq}</div><div class="seg">${FOPTS.map(([k,l])=>`<button type="button" data-f="${k}" class="${v===k?'on':''}">${l}</button>`).join('')}</div></div>`; }).join('')}</div>
+      return `<div class="eq${dis?' disabled':''}" data-eq="${eq}"><div class="eq-l">${esc(eqName(eq))}</div><div class="seg">${FOPTS.map(([k,l])=>`<button type="button" data-f="${k}" class="${v===k?'on':''}">${l}</button>`).join('')}</div></div>`; }).join('')}</div>
     <div class="obsrow"><textarea rows="1" data-fobs="${c.id}" placeholder="Observación principal">${esc(cur.finalObs[c.id]||'')}</textarea></div>
   </div>`).join('')}</div>
 
@@ -607,8 +652,11 @@ function renderForm(){
   ROWS.forEach(r=>{ renderPhotos(r.key); updateTask(r.key); }); renderPhotos('G');
   $$('textarea').forEach(autoGrow);
   SIGS.forEach(s=>setupPad(s.id));
+  renderEqView();
   updateChips();
 }
+/* re-render manteniendo la posición en pantalla */
+function rerender(){ const y=window.scrollY; renderForm(); window.scrollTo(0,y); }
 
 function autoGrow(t){ t.style.height='auto'; t.style.height=Math.max(44,t.scrollHeight+2)+'px'; }
 
@@ -625,7 +673,7 @@ function updateTask(k){
 function updateChips(){
   if(!cur) return;
   const p=progress(cur).bySec;
-  const items=[['H','Datos',null]].concat(SECTIONS.map(s=>[s.id,s.id,p[s.id]]),[['F','F',p.F],['G','G',null],['S','Firmas',p.S]]);
+  const items=[['H','Datos',null],['Q','Equipos ('+cur.equipos.length+')',null]].concat(SECTIONS.map(s=>[s.id,s.id,p[s.id]]),[['F','F',p.F],['G','G',null],['S','Firmas',p.S]]);
   $('#chips').innerHTML = items.map(([id,l,b])=>`<button type="button" class="chip${b&&b.d===b.t?' done':''}" data-go="s-${id}"><b>${l}</b>${b?`<span class="p">${b.d}/${b.t}</span>`:''}</button>`).join('');
 }
 $('#chips').addEventListener('click', e=>{ const b=e.target.closest('[data-go]'); if(b) document.getElementById(b.dataset.go)?.scrollIntoView({behavior:'smooth',block:'start'}); });
@@ -649,8 +697,35 @@ $('#form').addEventListener('click', e=>{
   const img=e.target.closest('.ph img');
   if(img){ const p=curPhotos.find(x=>x.id===img.closest('.ph').dataset.pid); $('#viewerImg').src=p.data; $('#viewerCap').textContent=photoCaption(p); $('#viewer').showModal(); return; }
   const del=e.target.closest('.ph .del');
-  if(del){ delPhoto(del.closest('.ph').dataset.pid); }
+  if(del){ delPhoto(del.closest('.ph').dataset.pid); return; }
+  if(e.target.closest('#btnAddEq')){ addEquipo(); return; }
+  const ed=e.target.closest('[data-eqdel]');
+  if(ed){ delEquipo(ed.dataset.eqdel); }
 });
+
+/* ---- equipos: agregar / eliminar ---- */
+async function addEquipo(){
+  const e=newEquipo(); cur.equipos.push(e); scheduleSave(); rerender();
+  const inp=$(`[data-eqid="${e.id}"] [data-eqf="tag"]`); if(inp){ inp.scrollIntoView({block:'center'}); inp.focus(); }
+  toast('Equipo agregado');
+}
+async function delEquipo(id){
+  const name=eqName(id);
+  const nData = Object.keys(cur.cells).filter(k=>k.endsWith('|'+id) && (cur.cells[k].s||cur.cells[k].v)).length
+              + Object.keys(cur.final).filter(k=>k.endsWith('|'+id) && cur.final[k]).length;
+  const nPh = curPhotos.filter(p=>p.eq===id).length;
+  const msg = `¿Eliminar <b>${esc(name)}</b> de esta inspección?` + (nData ? `<br><br>Se borrarán <b>${nData}</b> casilla(s) llenadas de este equipo.` : '') +
+              (nPh ? `<br>Sus <b>${nPh}</b> foto(s) se conservan y quedan como «General».` : '') + '<br><br>Esta acción no se puede deshacer.';
+  if(!await confirmDlg('Eliminar equipo', msg, 'Eliminar')) return;
+  cur.equipos = cur.equipos.filter(e=>e.id!==id);
+  for(const k of Object.keys(cur.cells)) if(k.endsWith('|'+id)) delete cur.cells[k];
+  for(const k of Object.keys(cur.final)) if(k.endsWith('|'+id)) delete cur.final[k];
+  delete cur.noExh[id];
+  for(const p of curPhotos.filter(p=>p.eq===id)){ p.eq=''; await dbPut('photos',p); }
+  if(eqFilter===id) eqFilter='';
+  scheduleSave(); rerender(); toast(name+' eliminado');
+}
+$('#eqView').addEventListener('change', e=>{ eqFilter=e.target.value; applyFilter(); });
 $('#form').addEventListener('input', e=>{
   const t=e.target;
   if(t.tagName==='TEXTAREA') autoGrow(t);
@@ -661,18 +736,20 @@ $('#form').addEventListener('input', e=>{
   else if(t.dataset.fobs){ cur.finalObs[t.dataset.fobs]=t.value; }
   else if(t.dataset.sname){ cur.firmas[t.dataset.sname].nombre=t.value; }
   else if(t.dataset.sdate){ cur.firmas[t.dataset.sdate].fecha=t.value; }
+  else if(t.dataset.eqf){ const e=cur.equipos.find(x=>x.id===t.closest('[data-eqid]').dataset.eqid); e[t.dataset.eqf]=t.value; }
   else return;
   scheduleSave();
 });
 $('#form').addEventListener('change', async e=>{
   const t=e.target;
+  if(t.dataset.eqf==='tag'){ rerender(); return; }
   if(t.dataset.noexh){
     const eq=t.dataset.noexh;
     if(t.checked){
       const used=ROWS.some(r=>r.exhaust && cur.cells[r.key+'|'+eq]?.s);
-      if(used && !await confirmDlg('Sin ventilador de extracción', `El equipo <b>${eq}</b> ya tiene casillas marcadas en la sección C. Quedarán como N/A (los valores anotados se conservan). ¿Continuar?`)){ t.checked=false; return; }
+      if(used && !await confirmDlg('Sin ventilador de extracción', `El equipo <b>${esc(eqName(eq))}</b> ya tiene casillas marcadas en la sección C. Quedarán como N/A (los valores anotados se conservan). ¿Continuar?`)){ t.checked=false; return; }
     }
-    cur.noExh[eq]=t.checked; scheduleSave(); const y=window.scrollY; renderForm(); window.scrollTo(0,y); return;
+    cur.noExh[eq]=t.checked; scheduleSave(); rerender(); return;
   }
   if(t.dataset.photo){ const files=[...t.files]; t.value=''; for(const f of files) await addPhoto(f, t.dataset.photo); return; }
   if(t.id==='penOnly'){ try{ localStorage.setItem('penOnly', t.checked?'1':'0'); }catch(err){} }
@@ -693,7 +770,7 @@ async function addPhoto(file, key){
     x.font=`bold ${fs}px Arial`; const tw=x.measureText(stamp).width;
     x.fillStyle='rgba(0,0,0,.55)'; x.fillRect(0,h-fs*1.7,tw+fs*1.2,fs*1.7);
     x.fillStyle='#fff'; x.fillText(stamp, fs*.6, h-fs*.5);
-    const p={id:uid(), inspId:cur.id, row:key, eq:'', data:c.toDataURL('image/jpeg',.8), ts:Date.now()};
+    const p={id:uid(), inspId:cur.id, row:key, eq: EQ.includes(eqFilter) ? eqFilter : (EQ.length===1 ? EQ[0] : ''), data:c.toDataURL('image/jpeg',.8), ts:Date.now()};
     await dbPut('photos',p); curPhotos.push(p); renderPhotos(key); if(ROW[key]) updateTask(key);
     cur.updated=Date.now(); scheduleSave(); toast('Foto agregada a '+key);
   }catch(e){ toast('No se pudo agregar la foto: '+e.message); }
@@ -707,10 +784,10 @@ function renderPhotos(key){
   const box=$(`[data-photos="${key}"]`); if(!box) return;
   const ps=curPhotos.filter(p=>p.row===key);
   box.innerHTML = ps.map(p=>`<div class="ph" data-pid="${p.id}"><img src="${p.data}" alt="Foto ${esc(key)}"><button type="button" class="del" aria-label="Eliminar foto">✕</button>
-    <select data-pf="eq" aria-label="Equipo de la foto"><option value="">General</option>${EQ.map(eq=>`<option ${p.eq===eq?'selected':''}>${eq}</option>`).join('')}</select></div>`).join('');
+    <select data-pf="eq" aria-label="Equipo de la foto"><option value="">General</option>${EQ.map(eq=>`<option value="${eq}" ${p.eq===eq?'selected':''}>${esc(eqName(eq))}</option>`).join('')}</select></div>`).join('');
   const cnt=box.closest('.task')?.querySelector('.cam .cnt'); if(cnt){ cnt.textContent=ps.length; cnt.classList.toggle('hidden',!ps.length); }
 }
-function photoCaption(p){ const r=ROW[p.row]; return `${p.row}${p.eq?' · '+p.eq:''} — ${r? r.t : 'Observaciones generales'}`; }
+function photoCaption(p){ const r=ROW[p.row], n=p.eq?eqName(p.eq):''; return `${p.row}${n?' · '+n:''} — ${r? r.t : 'Observaciones generales'}`; }
 
 /* ============================================================
    FIRMAS CON LÁPIZ (Pointer Events, sensible a la presión)
@@ -766,22 +843,27 @@ function validate(){
   [['fecha','Fecha'],['tecControl','Técnico Grupo de Control'],['tecServicio','Técnico Grupo de Servicio Técnico'],['horaIni','Hora de inicio'],['horaFin','Hora de término']]
     .forEach(([k,l])=>{ if(!String(h[k]||'').trim()) out.push({sev:'warn', msg:`Datos de la inspección: falta "${l}".`, go:'h-'+k}); });
   if(h.horaIni && h.horaFin && h.horaFin < h.horaIni) out.push({sev:'warn', msg:'La hora de término es anterior a la de inicio.', go:'h-horaFin'});
+  if(!EQ.length) out.push({sev:'err', msg:'No hay equipos en la inspección. Agrega al menos uno.', go:'s-Q'});
+  const names=cur.equipos.map(e=>eqName(e.id).toLowerCase()); const dup=[...new Set(names.filter((n,i)=>names.indexOf(n)!==i))];
+  if(dup.length) out.push({sev:'warn', msg:`Hay equipos con el mismo tag (${dup.join(', ')}). Usa un tag distinto para cada uno.`, go:'s-Q'});
+  cur.equipos.forEach((e,i)=>{ if(!e.tag.trim()) out.push({sev:'warn', msg:`Equipo ${i+1}: falta el tag o N° de serie.`, go:'s-Q'}); });
+  const nm = ids => ids.map(id=>eqName(id)).join(', ');
   ROWS.forEach(r=>{
     const ss=EQ.map(eq=>effS(r.key,eq));
     if(ss.includes('bad')){
-      const bad=EQ.filter((eq,i)=>ss[i]==='bad').join(', ');
+      const bad=nm(EQ.filter((eq,i)=>ss[i]==='bad'));
       if(!(cur.obs[r.key]||'').trim()) out.push({sev:'err', msg:`${r.key} (${bad}) marcada ✗ sin observación.`, go:'t-'+r.key});
       if(!curPhotos.some(p=>p.row===r.key)) out.push({sev:'err', msg:`${r.key} (${bad}) marcada ✗ sin registro fotográfico.`, go:'t-'+r.key});
     }
-    if(r.m) EQ.forEach((eq,i)=>{ if((ss[i]==='ok'||ss[i]==='bad') && !(cur.cells[r.key+'|'+eq]?.v||'').trim()) out.push({sev:'warn', msg:`${r.key} · ${eq}: medición marcada pero sin valor anotado.`, go:'t-'+r.key}); });
+    if(r.m) EQ.forEach((eq,i)=>{ if((ss[i]==='ok'||ss[i]==='bad') && !(cur.cells[r.key+'|'+eq]?.v||'').trim()) out.push({sev:'warn', msg:`${r.key} · ${eqName(eq)}: medición marcada pero sin valor anotado.`, go:'t-'+r.key}); });
   });
   SECTIONS.forEach(s=>{
     const pend=[]; s.groups.forEach(g=>g.rows.forEach(rw=>{ const k=s.id+rw[0]; const m=EQ.filter(eq=>!effS(k,eq)); if(m.length) pend.push(k); }));
     if(pend.length) out.push({sev:'warn', msg:`Sección ${s.id}: ${pend.length} tarea(s) con casillas sin marcar (${pend.slice(0,6).join(', ')}${pend.length>6?'…':''}).`, go:'t-'+pend[0]});
   });
   FINAL.forEach(c=>{
-    const m=EQ.filter(eq=>!effF(c.id,eq)); if(m.length) out.push({sev:'warn', msg:`Calificación final "${c.t}": falta en ${m.join(', ')}.`, go:'f-'+c.id});
-    const need=EQ.filter(eq=>['AO','NoA'].includes(effF(c.id,eq))); if(need.length && !(cur.finalObs[c.id]||'').trim()) out.push({sev:'err', msg:`"${c.t}" calificado AO/NoA en ${need.join(', ')} sin observación principal.`, go:'f-'+c.id});
+    const m=EQ.filter(eq=>!effF(c.id,eq)); if(m.length) out.push({sev:'warn', msg:`Calificación final "${c.t}": falta en ${nm(m)}.`, go:'f-'+c.id});
+    const need=EQ.filter(eq=>['AO','NoA'].includes(effF(c.id,eq))); if(need.length && !(cur.finalObs[c.id]||'').trim()) out.push({sev:'err', msg:`"${c.t}" calificado AO/NoA en ${nm(need)} sin observación principal.`, go:'f-'+c.id});
   });
   SIGS.forEach(s=>{ const f=cur.firmas[s.id];
     if(!f.nombre.trim()) out.push({sev:'warn', msg:`Firmas: falta el nombre de "${s.t}".`, go:'s-S'});
@@ -812,40 +894,53 @@ function buildReport(){
     <td class="pt"><div class="b1">${EFINTEL.sistema}</div><div class="b2">${EFINTEL.documento}</div></td>
     <td class="pc">${EFINTEL.direccion}<br>${EFINTEL.email}<br>${EFINTEL.fono}<br>${EFINTEL.web}</td></tr></table>
   <h1>ANEXO: CHECK LIST DE TERRENO</h1>
-  <div class="subt">Revisión de ventiladores de inyección y extracción, y del VDF, previa al retrofit de los equipos TRANE Voyager</div>
+  <div class="subt">Revisión de ventiladores de inyección y extracción, y del VDF</div>
   <h2>Datos de la inspección</h2>
   <table><tr><th style="width:22%">Fecha</th><td>${esc(fmtDate(h.fecha))}</td><th style="width:22%">Cliente y ubicación</th><td>${esc(h.cliente)}</td></tr>
-  <tr><th>Equipo</th><td>${esc(h.equipo)}</td><th>Tag o N° de serie</th><td>${esc(h.tag)}</td></tr>
+  <tr><th>Tipo de trabajo</th><td>${esc(h.trabajo)}</td><th>N° OT / referencia</th><td>${esc(h.ot)}</td></tr>
   <tr><th>Técnico Grupo de Control</th><td>${esc(h.tecControl)}</td><th>Técnico Grupo de Servicio Técnico</th><td>${esc(h.tecServicio)}</td></tr>
   <tr><th>Hora de inicio</th><td>${esc(h.horaIni)}</td><th>Hora de término</th><td>${esc(h.horaFin)}</td></tr></table>
+  <h2>Equipos inspeccionados (${cur.equipos.length})</h2>
+  <table><thead><tr><th>N°</th><th>Tag / N° de serie</th><th>Marca / modelo / capacidad</th><th>Ubicación</th></tr></thead><tbody>
+  ${cur.equipos.map((e,i)=>`<tr><td class="n">${i+1}</td><td><b>${esc(eqName(e.id))}</b></td><td>${esc(e.desc)}</td><td>${esc(e.ubic)}</td></tr>`).join('') || '<tr><td colspan="4">Sin equipos</td></tr>'}
+  </tbody></table>
   <div class="legend-p">✓ en buen estado · ✗ con falla u observación · N/A no aplica</div>`;
+  /* hasta 4 equipos por tabla para que el PDF siga legible */
+  const PER=4, chunks=[]; for(let i=0;i<EQ.length;i+=PER) chunks.push(EQ.slice(i,i+PER)); if(!chunks.length) chunks.push([]);
+  const part = (ci) => { if(chunks.length<2) return ''; const a=ci*PER+1, b=ci*PER+chunks[ci].length; return a===b ? ` — equipo ${a} de ${EQ.length}` : ` — equipos ${a} a ${b} de ${EQ.length}`; };
   SECTIONS.forEach(s=>{
-    o+=`<h2>${esc(s.title)}${s.exhaust&&EQ.some(eq=>cur.noExh[eq])?` (sin extractor: ${EQ.filter(eq=>cur.noExh[eq]).join(', ')})`:''}</h2>
-    <table><thead><tr><th>N°</th><th>Tarea</th>${EQ.map(eq=>`<th>Equipo ${eq}</th>`).join('')}<th style="width:28%">Observación</th></tr></thead><tbody>`;
-    s.groups.forEach(g=>{
-      if(g.title) o+=`<tr class="grp"><td colspan="6">${esc(g.title)}</td></tr>`;
-      g.rows.forEach(rw=>{ const k=s.id+rw[0]; const np=curPhotos.filter(p=>p.row===k).length;
-        o+=`<tr><td class="n">${rw[0]}</td><td>${esc(rw[1])}</td>${EQ.map(eq=>`<td class="c">${sCell(k,eq)}</td>`).join('')}<td>${esc(cur.obs[k]||'')}${np?` <i>(${np} foto${np>1?'s':''})</i>`:''}</td></tr>`; });
+    chunks.forEach((E,ci)=>{
+      const noX=E.filter(eq=>cur.noExh[eq]);
+      o+=`<h2>${esc(s.title)}${part(ci)}${s.exhaust&&noX.length?` (sin extractor: ${esc(noX.map(eq=>eqName(eq)).join(', '))})`:''}</h2>
+      <table><thead><tr><th>N°</th><th>Tarea</th>${E.map(eq=>`<th>${esc(eqName(eq))}</th>`).join('')}<th style="width:28%">Observación</th></tr></thead><tbody>`;
+      s.groups.forEach(g=>{
+        if(g.title) o+=`<tr class="grp"><td colspan="${E.length+3}">${esc(g.title)}</td></tr>`;
+        g.rows.forEach(rw=>{ const k=s.id+rw[0]; const np=curPhotos.filter(p=>p.row===k).length;
+          o+=`<tr><td class="n">${rw[0]}</td><td>${esc(rw[1])}</td>${E.map(eq=>`<td class="c">${sCell(k,eq)}</td>`).join('')}<td>${ci===0?esc(cur.obs[k]||'')+(np?` <i>(${np} foto${np>1?'s':''})</i>`:''):''}</td></tr>`; });
+      });
+      o+='</tbody></table>';
     });
-    o+='</tbody></table>';
   });
-  o+=`<div class="avoid"><h2>F. Calificación final de los componentes</h2>
-  <div class="legend-p">A: Apto · AO: Apto con observaciones · NoA: No apto</div>
-  <table><thead><tr><th>Componente</th>${EQ.map(eq=>`<th>Equipo ${eq}</th>`).join('')}<th style="width:32%">Observación principal</th></tr></thead><tbody>
-  ${FINAL.map(c=>`<tr><td>${esc(c.t)}</td>${EQ.map(eq=>{const v=effF(c.id,eq);return `<td class="c"><b>${v==='NA'?'N/A':esc(v)}</b></td>`;}).join('')}<td>${esc(cur.finalObs[c.id]||'')}</td></tr>`).join('')}
-  </tbody></table></div>
+  o+=`<h2>F. Calificación final de los componentes</h2>
+  <div class="legend-p">A: Apto · AO: Apto con observaciones · NoA: No apto</div>`;
+  chunks.forEach((E,ci)=>{
+    o+=`<table class="avoid" style="margin-bottom:2mm"><thead><tr><th>Componente${part(ci)}</th>${E.map(eq=>`<th>${esc(eqName(eq))}</th>`).join('')}<th style="width:32%">Observación principal</th></tr></thead><tbody>
+    ${FINAL.map(c=>`<tr><td>${esc(c.t)}</td>${E.map(eq=>{const v=effF(c.id,eq);return `<td class="c"><b>${v==='NA'?'N/A':esc(v)}</b></td>`;}).join('')}<td>${ci===0?esc(cur.finalObs[c.id]||''):''}</td></tr>`).join('')}
+    </tbody></table>`;
+  });
+  o+=`
   <div class="avoid"><h2>G. Observaciones generales</h2><table><tr><td style="height:18mm;white-space:pre-wrap">${esc(cur.obsGen||'')}</td></tr></table></div>
   <div class="avoid"><h2>Firmas</h2><table><thead><tr><th>Cargo</th><th>Nombre</th><th>Firma</th><th>Fecha</th></tr></thead><tbody>
   ${SIGS.map(s=>{const f=cur.firmas[s.id]; return `<tr><td>${esc(s.t)}</td><td>${esc(f.nombre)}</td><td style="height:22mm">${f.img?`<img class="sigimg" src="${f.img}" alt="Firma">`:''}</td><td>${esc(fmtDate(f.fecha))}${f.ts?`<br><small>${fmtTs(f.ts)}</small>`:''}</td></tr>`;}).join('')}
   </tbody></table></div>`;
   const ordered=[...curPhotos].sort((a,b)=>{ const ia=ROWS.findIndex(r=>r.key===a.row), ib=ROWS.findIndex(r=>r.key===b.row); return (ia<0?999:ia)-(ib<0?999:ib) || a.ts-b.ts; });
-  if(ordered.length) o+=`<h2 style="page-break-before:always">Registro fotográfico</h2><div class="pgrid">${ordered.map(p=>`<figure><img src="${p.data}" alt=""><figcaption><b>${esc(p.row)}${p.eq?' · '+esc(p.eq):''}</b> — ${esc(ROW[p.row]?.t||'Observaciones generales')}</figcaption></figure>`).join('')}</div>`;
+  if(ordered.length) o+=`<h2 style="page-break-before:always">Registro fotográfico</h2><div class="pgrid">${ordered.map(p=>`<figure><img src="${p.data}" alt=""><figcaption><b>${esc(p.row)}${p.eq&&eqName(p.eq)?' · '+esc(eqName(p.eq)):''}</b> — ${esc(ROW[p.row]?.t||'Observaciones generales')}</figcaption></figure>`).join('')}</div>`;
   o+=`<div class="foot">Generado el ${fmtTs(Date.now())} · ID ${esc(cur.id)}</div>`;
   $('#print').innerHTML=o;
 }
 async function makePdf(){
   await saveNow(); buildReport();
-  const old=document.title; document.title=`CheckList_${cur.header.cliente.replace(/\s+/g,'')}_${cur.header.fecha}`;
+  const old=document.title; document.title=`CheckList_${(cur.header.cliente||'HVAC').replace(/\s+/g,'')}_${cur.header.fecha}`;
   await Promise.all($$('#print img').map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r;})));
   setTimeout(()=>{ window.print(); setTimeout(()=>document.title=old, 1000); }, 100);
 }
