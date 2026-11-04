@@ -103,6 +103,10 @@ input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid c
 .seg button.on[data-s="bad"]{background:var(--bad);border-color:var(--bad);color:#fff}
 .seg button.on[data-s="na"]{background:var(--na);border-color:var(--na);color:#fff}
 .obsrow{display:flex;gap:8px;margin-top:10px;align-items:flex-start}
+.anx-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.anx-btns label{position:relative;overflow:hidden;cursor:pointer}
+.anx-btns input{position:absolute;inset:0;opacity:0;width:100%}
+.anx-photos .ph img{aspect-ratio:auto;object-fit:contain;background:#fff}
 .eqobs{display:none;margin-top:6px;min-height:40px;padding:8px 10px;font-size:14px}
 .eqo-btn{margin-top:6px;width:100%;border:1px dashed var(--line);background:transparent;border-radius:9px;min-height:36px;font-size:13px;color:var(--muted)}
 .eq.show-o .eqobs{display:block}.eq.show-o .eqo-btn{display:none}
@@ -238,6 +242,9 @@ dialog::backdrop{background:rgba(10,25,40,.55)}
   #print .legend-p{font-size:8pt;margin:1mm 0 2mm}
   #print .foot{font-size:7.5pt;color:#555;margin-top:4mm;text-align:right}
   #print .avoid{page-break-inside:avoid}
+  #print .anexo{page-break-before:always;break-before:page;page-break-inside:avoid;break-inside:avoid}
+  #print .anexo h2{margin-top:0}
+  #print .anexo img{display:block;width:100%;height:255mm;object-fit:contain;margin:0 auto}
 }
 /* ---------- plantillas ---------- */
 .tplcard{background:#fff;border:1px solid #d5dde3;border-radius:14px;padding:14px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
@@ -831,6 +838,9 @@ function migrate(ins){
 let cur=null, X=null, curPhotos=[], EQ=[], eqFilter='';
 const eqIds = ins => (ins.equipos||[]).map(e=>e.id);
 const eqName = (id, ins=cur) => { const i=ins.equipos.findIndex(e=>e.id===id); return i<0 ? '' : (ins.equipos[i].tag.trim() || `Equipo ${i+1}`); };
+/* anexos del trabajo: documentos en papel fotografiados a página completa */
+const ANEXOS=[{id:'AST', n:1, corto:'AST', t:'AST · Análisis Seguro de Trabajo'},{id:'HST', n:2, corto:'Hoja de servicio', t:'Hoja de Servicio Técnico'}];
+const ANX_BY_ID=Object.fromEntries(ANEXOS.map(a=>[a.id,a]));
 const cell = (k,eq) => cur.cells[k+'|'+eq] || (cur.cells[k+'|'+eq] = {s:'', v:''});
 const secOff = (secId, eq, ins=cur) => !!ins.noSec?.[secId]?.[eq];
 function effS(k,eq,ins=cur){ const r=ctxOf(ins).ROW[k]; if(r && r.opt && secOff(r.sec,eq,ins)) return 'na'; return ins.cells[k+'|'+eq]?.s || ''; }
@@ -1180,10 +1190,21 @@ function renderForm(){
 
   <h2 class="sec-title" id="s-S">Firmas</h2>
   <div class="note">Para firmar toca <b>Firmar</b>: se abre un recuadro grande y la firma solo se guarda al tocar <b>Aceptar firma</b>. Los recuadros de esta página están bloqueados, así que pasar el dedo para desplazarte no los raya.</div>
-  ${X.SIGS.map(s=>sigHTML(s)).join('')}`;
+  ${X.SIGS.map(s=>sigHTML(s)).join('')}
+  <h2 class="sec-title" id="s-ANX">Anexos</h2>
+  <div class="note">Fotografía cada página del documento en papel, completa y bien iluminada. En el PDF cada foto ocupa una página entera. Si el documento tiene varias páginas, agrega una foto por página en orden.</div>
+  ${ANEXOS.map(a=>`<div class="task" data-key="${a.id}" id="t-${a.id}">
+    <div class="task-h"><span class="num">${a.n}</span><span class="txt"><b>${esc(a.t)}</b></span><span class="flag"></span></div>
+    <div class="anx-btns">
+      <label class="btn primary">📷 Fotografiar página<input type="file" accept="image/*" capture="environment" data-photo="${a.id}"></label>
+      <label class="btn">🖼 Desde la galería<input type="file" accept="image/*" multiple data-photo="${a.id}"></label>
+      <span class="cam" style="display:none"><span class="cnt hidden"></span></span>
+    </div>
+    <div class="photos anx-photos" data-photos="${a.id}"></div>
+  </div>`).join('')}`;
   $('#form').innerHTML = html;
   $('#ftitle').textContent = `${h.cliente||'Sin cliente'} · ${fmtDate(h.fecha)}`;
-  X.ROWS.forEach(r=>{ renderPhotos(r.key); updateTask(r.key); }); renderPhotos('OBS');
+  X.ROWS.forEach(r=>{ renderPhotos(r.key); updateTask(r.key); }); renderPhotos('OBS'); ANEXOS.forEach(a=>renderPhotos(a.id));
   $$('#form textarea').forEach(autoGrow);
   renderEqView();
   updateChips();
@@ -1208,7 +1229,7 @@ function updateChips(){
   if(!cur) return;
   const p=progress(cur).bySec;
   const items=[['H','Datos',null],['Q','Equipos ('+cur.equipos.length+')',null]]
-    .concat(X.SECTIONS.map(s=>[s.id,s.id,p[s.id]]), X.hasCal?[['CAL',X.calL,p.CAL]]:[], [['OBS',X.obsL,null],['S','Firmas',p.S]]);
+    .concat(X.SECTIONS.map(s=>[s.id,s.id,p[s.id]]), X.hasCal?[['CAL',X.calL,p.CAL]]:[], [['OBS',X.obsL,null],['S','Firmas',p.S],['ANX','Anexos',null]]);
   $('#chips').innerHTML = items.map(([id,l,b])=>`<button type="button" class="chip${b&&b.t&&b.d===b.t?' done':''}" data-go="s-${id}"><b>${l}</b>${b?`<span class="p">${b.d}/${b.t}</span>`:''}</button>`).join('');
 }
 $('#chips').addEventListener('click', e=>{ const b=e.target.closest('[data-go]'); if(b) document.getElementById(b.dataset.go)?.scrollIntoView({behavior:'smooth',block:'start'}); });
@@ -1301,16 +1322,17 @@ $('#eqView').addEventListener('change', e=>{ eqFilter=e.target.value; applyFilte
 function loadImage(file){ return new Promise((res,rej)=>{ const u=URL.createObjectURL(file), i=new Image(); i.onload=()=>{URL.revokeObjectURL(u);res(i);}; i.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('Imagen no válida'));}; i.src=u; }); }
 async function addPhoto(file, key){
   try{
-    const img=await loadImage(file), max=1600, sc=Math.min(1, max/Math.max(img.naturalWidth,img.naturalHeight));
+    const anx=ANX_BY_ID[key];
+    const img=await loadImage(file), max=anx?2600:1600, sc=Math.min(1, max/Math.max(img.naturalWidth,img.naturalHeight));
     const w=Math.round(img.naturalWidth*sc), h=Math.round(img.naturalHeight*sc);
     const c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d');
     x.drawImage(img,0,0,w,h);
-    const eq = EQ.includes(eqFilter) ? eqFilter : (EQ.length===1 ? EQ[0] : '');
-    const stamp=`${key==='OBS'?'Obs. general':key}${eq?' · '+eqName(eq):''} · ${cur.header.cliente||''} · ${fmtTs(Date.now())}`, fs=Math.max(14,Math.round(w/55));
+    const eq = anx ? '' : EQ.includes(eqFilter) ? eqFilter : (EQ.length===1 ? EQ[0] : '');
+    const stamp=`${anx?anx.corto:key==='OBS'?'Obs. general':key}${eq?' · '+eqName(eq):''} · ${cur.header.cliente||''} · ${fmtTs(Date.now())}`, fs=Math.max(14,Math.round(w/(anx?90:55)));
     x.font=`bold ${fs}px Arial`; const tw=x.measureText(stamp).width;
     x.fillStyle='rgba(0,0,0,.55)'; x.fillRect(0,h-fs*1.7,tw+fs*1.2,fs*1.7);
     x.fillStyle='#fff'; x.fillText(stamp, fs*.6, h-fs*.5);
-    const p={id:uid(), inspId:cur.id, row:key, eq, data:c.toDataURL('image/jpeg',.8), ts:Date.now()};
+    const p={id:uid(), inspId:cur.id, row:key, eq, data:c.toDataURL('image/jpeg',anx?.85:.8), ts:Date.now()};
     await dbPut('photos',p); curPhotos.push(p); renderPhotos(key); if(X.ROW[key]) updateTask(key);
     scheduleSave(); toast('Foto agregada');
   }catch(e){ toast('No se pudo agregar la foto: '+e.message); }
@@ -1323,11 +1345,12 @@ async function delPhoto(id){
 function renderPhotos(key){
   const box=$(`[data-photos="${key}"]`); if(!box) return;
   const ps=curPhotos.filter(p=>p.row===key);
-  box.innerHTML = ps.map(p=>`<div class="ph" data-pid="${p.id}"><img src="${p.data}" alt="Foto ${esc(key)}"><button type="button" class="del" aria-label="Eliminar foto">✕</button>
-    <select data-pf="eq" aria-label="Equipo de la foto"><option value="">General</option>${EQ.map(eq=>`<option value="${eq}" ${p.eq===eq?'selected':''}>${esc(eqName(eq))}</option>`).join('')}</select></div>`).join('');
+  const anx=ANX_BY_ID[key]; if(anx) ps.sort((a,b)=>a.ts-b.ts);
+  box.innerHTML = ps.map((p,i)=>`<div class="ph" data-pid="${p.id}"><img src="${p.data}" alt="Foto ${esc(key)}"><button type="button" class="del" aria-label="Eliminar foto">✕</button>
+    ${anx?`<div class="pgno" style="text-align:center;font-size:13px;font-weight:700;padding:4px">Página ${i+1}</div>`:`<select data-pf="eq" aria-label="Equipo de la foto"><option value="">General</option>${EQ.map(eq=>`<option value="${eq}" ${p.eq===eq?'selected':''}>${esc(eqName(eq))}</option>`).join('')}</select>`}</div>`).join('');
   const cnt=box.closest('.task')?.querySelector('.cam .cnt'); if(cnt){ cnt.textContent=ps.length; cnt.classList.toggle('hidden',!ps.length); }
 }
-function photoCaption(p){ const r=X.ROW[p.row], n=p.eq?eqName(p.eq):''; return `${p.row==='OBS'?X.obsL:p.row}${n?' · '+n:''} — ${r? r.t : 'Observaciones generales'}`; }
+function photoCaption(p){ if(ANX_BY_ID[p.row]) return ANX_BY_ID[p.row].t; const r=X.ROW[p.row], n=p.eq?eqName(p.eq):''; return `${p.row==='OBS'?X.obsL:p.row}${n?' · '+n:''} — ${r? r.t : 'Observaciones generales'}`; }
 
 /* ============================================================
    FIRMAS CON LÁPIZ (Pointer Events, sensible a la presión)
@@ -1430,6 +1453,7 @@ function validate(){
   if(dup.length) out.push({sev:'warn', msg:`Hay equipos con el mismo tag (${dup.join(', ')}). Usa un tag distinto para cada uno.`, go:'s-Q'});
   cur.equipos.forEach((e,i)=>{ if(!e.tag.trim()) out.push({sev:'warn', msg:`Equipo ${i+1}: falta el tag o N° de serie.`, go:'s-Q'}); });
   const nm = ids => ids.map(id=>eqName(id)).join(', ');
+  ANEXOS.forEach(x=>{ if(!curPhotos.some(p=>p.row===x.id)) out.push({sev:'warn', msg:`Anexo ${x.n}: falta la foto de ${x.t}.`, go:'t-'+x.id}); });
   X.ROWS.forEach(r=>{
     const ss=EQ.map(eq=>effS(r.key,eq));
     if(ss.includes('bad')){
@@ -1525,13 +1549,16 @@ function buildReport(){
       </tbody></table>`;
     });
   }
-  const obsPh=curPhotos.filter(p=>p.row==='OBS' || !X.ROW[p.row]).sort((a,b)=>a.ts-b.ts);
+  const obsPh=curPhotos.filter(p=>p.row==='OBS' || (!X.ROW[p.row] && !ANX_BY_ID[p.row])).sort((a,b)=>a.ts-b.ts);
   o+=`<div class="avoid"><h2>${X.obsL}. Observaciones generales</h2><table><tr><td style="height:18mm;white-space:pre-wrap">${esc(cur.obsGen||'')}</td></tr>
   ${obsPh.length?`<tr class="phrow"><td>${photoGrid(obsPh, X.obsL, 'Registro fotográfico de observaciones generales')}</td></tr>`:''}</table></div>
   <div class="avoid"><h2>Firmas</h2><table><thead><tr><th>Cargo</th><th>Nombre</th><th>Firma</th><th>Fecha</th></tr></thead><tbody>
   ${X.SIGS.map(s=>{const f=cur.firmas[s.id]; return `<tr><td>${esc(s.t)}</td><td>${esc(f.nombre)}</td><td style="height:22mm">${f.img?`<img class="sigimg" src="${f.img}" alt="Firma">`:''}</td><td>${esc(fmtDate(f.fecha))}${f.ts?`<br><small>${fmtTs(f.ts)}</small>`:''}</td></tr>`;}).join('')}
   </tbody></table></div>`;
   o+=`<div class="foot">Plantilla: ${esc(cur.tpl.nombre)} · Generado el ${fmtTs(Date.now())} · ID ${esc(cur.id)}</div>`;
+  /* anexos: cada página fotografiada ocupa una hoja completa */
+  ANEXOS.forEach(a=>{ const ps=curPhotos.filter(p=>p.row===a.id).sort((x,y)=>x.ts-y.ts);
+    ps.forEach((p,i)=>{ o+=`<div class="anexo"><h2>Anexo ${a.n} · ${esc(a.t)}${ps.length>1?` — página ${i+1} de ${ps.length}`:''}</h2><img src="${p.data}" alt="${esc(a.t)}"></div>`; }); });
   $('#print').innerHTML=o;
 }
 async function makePdf(){
