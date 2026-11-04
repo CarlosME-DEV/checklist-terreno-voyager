@@ -1,6 +1,6 @@
 /* Service worker: deja la app disponible sin conexión.
    Al publicar una versión nueva, sube el número de VERSION. */
-const VERSION = 'v8';
+const VERSION = 'v9';
 const CACHE = 'checklist-voyager-' + VERSION;
 const FILES = [
   './',

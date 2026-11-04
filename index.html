@@ -225,9 +225,9 @@ dialog::backdrop{background:rgba(10,25,40,.55)}
   #print .pgrid figure{margin:0;page-break-inside:avoid;break-inside:avoid;border:0.3mm solid #999;padding:1mm;background:#fff}
   #print .pgrid img{width:100%;height:36mm;object-fit:cover;display:block}
   #print .pgrid figcaption{font-size:7pt;margin-top:0.8mm;color:#333}
-  #print tr.hasph td{border-bottom:0}
-  #print tr.phrow td{border-top:0;background:#f6f8fa;padding:1.5mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  #print tr.hasph,#print tr.phrow{page-break-inside:avoid;break-inside:avoid}
+  #print tr.phrow td{background:#f6f8fa;padding:1.5mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #print tr.phrow td.n{font-weight:700;color:#0f3d5e;vertical-align:middle}
+  #print .phlbl{font-size:8pt;font-weight:700;color:#0f3d5e;margin-bottom:1.2mm}
   #print .sigimg{height:20mm;max-width:60mm;display:block}
   #print .legend-p{font-size:8pt;margin:1mm 0 2mm}
   #print .foot{font-size:7.5pt;color:#555;margin-top:4mm;text-align:right}
@@ -1456,9 +1456,10 @@ function sCell(k,eq){
   return [esc(v), sym].filter(Boolean).join(' ');
 }
 /* grilla de fotos que va dentro de la tabla, justo bajo la tarea */
-function photoGrid(ps){
-  return `<div class="pgrid">${ps.map(p=>{ const n=p.eq&&eqName(p.eq);
-    return `<figure><img src="${p.data}" alt=""><figcaption><b>${esc(p.row==='OBS'?X.obsL:p.row)}${n?' · '+esc(n):' · General'}</b> · ${fmtTs(p.ts)}</figcaption></figure>`; }).join('')}</div>`;
+/* fila propia de fotos bajo la tarea (sub-índice 8.1); cada foto lleva número, tarea, equipo y hora */
+function photoGrid(ps, sub, lbl){
+  return `<div class="phlbl">${esc(lbl)} (${ps.length} foto${ps.length>1?'s':''})</div><div class="pgrid">${ps.map((p,i)=>{ const n=p.eq&&eqName(p.eq);
+    return `<figure><img src="${p.data}" alt=""><figcaption><b>Foto ${i+1}</b> · ${esc(sub)} · ${n?esc(n):'General'} · ${fmtTs(p.ts)}</figcaption></figure>`; }).join('')}</div>`;
 }
 function buildReport(){
   const h=cur.header;
@@ -1490,8 +1491,8 @@ function buildReport(){
         g.tareas.forEach(tk_=>{ n++; const k=s.id+n;
           /* fotos de la tarea: en el bloque de su equipo; las «General» en el primer bloque */
           const ph=curPhotos.filter(p=>p.row===k && (E.includes(p.eq) || (ci===0 && !EQ.includes(p.eq)))).sort((a,b)=>a.ts-b.ts);
-          o+=`<tr class="${ph.length?'hasph':''}"><td class="n">${n}</td><td>${esc(tk_.t)}</td>${E.map(eq=>`<td class="c">${sCell(k,eq)}</td>`).join('')}<td>${ci===0?esc(cur.obs[k]||''):''}</td></tr>`;
-          if(ph.length) o+=`<tr class="phrow"><td></td><td colspan="${E.length+2}">${photoGrid(ph)}</td></tr>`; });
+          o+=`<tr><td class="n">${n}</td><td>${esc(tk_.t)}</td>${E.map(eq=>`<td class="c">${sCell(k,eq)}</td>`).join('')}<td>${ci===0?esc(cur.obs[k]||''):''}</td></tr>`;
+          if(ph.length) o+=`<tr class="phrow"><td class="n">${n}.1</td><td colspan="${E.length+2}">${photoGrid(ph, k, 'Registro fotográfico de la tarea '+n)}</td></tr>`; });
       });
       o+='</tbody></table>';
     });
@@ -1506,7 +1507,7 @@ function buildReport(){
   }
   const obsPh=curPhotos.filter(p=>p.row==='OBS' || !X.ROW[p.row]).sort((a,b)=>a.ts-b.ts);
   o+=`<div class="avoid"><h2>${X.obsL}. Observaciones generales</h2><table><tr><td style="height:18mm;white-space:pre-wrap">${esc(cur.obsGen||'')}</td></tr>
-  ${obsPh.length?`<tr class="phrow"><td>${photoGrid(obsPh)}</td></tr>`:''}</table></div>
+  ${obsPh.length?`<tr class="phrow"><td>${photoGrid(obsPh, X.obsL, 'Registro fotográfico de observaciones generales')}</td></tr>`:''}</table></div>
   <div class="avoid"><h2>Firmas</h2><table><thead><tr><th>Cargo</th><th>Nombre</th><th>Firma</th><th>Fecha</th></tr></thead><tbody>
   ${X.SIGS.map(s=>{const f=cur.firmas[s.id]; return `<tr><td>${esc(s.t)}</td><td>${esc(f.nombre)}</td><td style="height:22mm">${f.img?`<img class="sigimg" src="${f.img}" alt="Firma">`:''}</td><td>${esc(fmtDate(f.fecha))}${f.ts?`<br><small>${fmtTs(f.ts)}</small>`:''}</td></tr>`;}).join('')}
   </tbody></table></div>`;
