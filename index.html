@@ -210,14 +210,38 @@ dialog::backdrop{background:rgba(10,25,40,.55)}
   #print .foot{font-size:7.5pt;color:#555;margin-top:4mm;text-align:right}
   #print .avoid{page-break-inside:avoid}
 }
+/* ---------- plantillas ---------- */
+.tplcard{background:#fff;border:1px solid #d5dde3;border-radius:14px;padding:14px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+.tplcard h3{margin:0 0 4px;font-size:17px}
+.tplcard .meta{font-size:13px;color:#5b6b78}
+.badge.base{background:#e3eef6;color:#0f3d5e}
+.badge.own{background:#efe6fb;color:#5b2d91}
+.pick{display:block;width:100%;text-align:left;background:#fff;border:1px solid #d5dde3;border-radius:12px;padding:12px 14px;margin-bottom:8px;min-height:56px}
+.pick b{display:block;font-size:16px;color:#0f3d5e}
+.pick span{display:block;font-size:13px;color:#5b6b78;margin-top:2px}
+.pick:active{background:#eef4f9}
+/* editor */
+.edsec{background:#fff;border:1px solid #d5dde3;border-left:5px solid #0f3d5e;border-radius:14px;padding:12px;margin-bottom:14px}
+.edrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.edrow input[type=text],.edrow input:not([type]),.edrow select{flex:1;min-width:140px;border:1px solid #d5dde3;border-radius:10px;padding:10px 12px;min-height:44px;background:#fff}
+.edgrp{border:1px dashed #b9c6d0;border-radius:12px;padding:10px;margin:10px 0 0;background:#fafbfc}
+.edtask{display:grid;grid-template-columns:28px 1fr 170px auto;gap:6px;align-items:center;margin-top:6px}
+.edtask input{border:1px solid #d5dde3;border-radius:10px;padding:8px 10px;min-height:42px;background:#fff;width:100%}
+.edtask .n{font-size:13px;color:#5b6b78;text-align:center;font-weight:700}
+.ib{border:1px solid #d5dde3;background:#fff;border-radius:9px;min-width:40px;min-height:40px;font-size:15px}
+.ib.del{color:#c62828}
+.ibs{display:flex;gap:4px}
+.addb{border:1px dashed #1d6fa5;background:#f2f8fc;color:#1d6fa5;border-radius:10px;min-height:42px;padding:0 14px;font-weight:600;margin-top:8px}
+.edh{font-size:13px;color:#5b6b78;margin:4px 0 0}
+@media (max-width:640px){.edtask{grid-template-columns:24px 1fr}.edtask .m,.edtask .ibs{grid-column:2}}
 </style>
 </head>
 <body>
 
-<!-- =================== PANTALLA: LISTA =================== -->
 <div id="app">
+<!-- =================== PANTALLA: LISTA =================== -->
 <section id="home">
-  <div class="top"><div class="top-row"><h1>Check List de Terreno HVAC · Efintel</h1></div></div>
+  <div class="top"><div class="top-row"><h1>Check List de Terreno HVAC · Efintel</h1><button class="tbtn" id="btnTpls">Plantillas</button></div></div>
   <main>
     <div id="homeBrand"></div>
     <div class="appbar">
@@ -235,6 +259,28 @@ dialog::backdrop{background:rgba(10,25,40,.55)}
     <div id="ilist" class="ilist"></div>
     <p class="note" style="margin-top:18px">Los datos se guardan automáticamente en esta tablet (en este navegador). Exporta un <b>respaldo .json</b> o el <b>PDF</b> al terminar cada inspección: si se borran los datos del navegador, se pierden las inspecciones no respaldadas.</p>
   </main>
+</section>
+
+<!-- =================== PANTALLA: PLANTILLAS =================== -->
+<section id="tplView" class="hidden">
+  <div class="top"><div class="top-row"><button class="tbtn" data-nav="home">◀ Inspecciones</button><h1>Plantillas de check list</h1></div></div>
+  <main>
+    <div class="home-h">
+      <h2>Plantillas disponibles</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <label class="btn" style="display:inline-grid;place-items:center">Importar plantilla<input type="file" id="importTpl" accept=".json,application/json" class="hidden"></label>
+        <button class="btn primary" id="btnTplNew">+ Plantilla en blanco</button>
+      </div>
+    </div>
+    <p class="note">Las plantillas <b>base</b> vienen con la app y no se modifican: usa <b>Copiar y editar</b> para crear una versión propia. Cada inspección guarda una copia de la plantilla con la que se creó, así que editar una plantilla no cambia las inspecciones ya hechas. Exporta tus plantillas (.json) para pasarlas a otras tablets.</p>
+    <div id="tlist" class="ilist"></div>
+  </main>
+</section>
+
+<!-- =================== PANTALLA: EDITOR DE PLANTILLA =================== -->
+<section id="edView" class="hidden">
+  <div class="top"><div class="top-row"><button class="tbtn" id="edCancel">◀ Cancelar</button><h1 id="edTitle">Editar plantilla</h1><button class="tbtn primary" id="edSave">Guardar</button></div></div>
+  <main id="editor"></main>
 </section>
 
 <!-- =================== PANTALLA: FORMULARIO =================== -->
@@ -258,6 +304,11 @@ dialog::backdrop{background:rgba(10,25,40,.55)}
 </div>
 
 <!-- diálogos -->
+<dialog id="dlgTpl">
+  <div class="dh"><h2>¿Qué tipo de levantamiento?</h2><button class="btn" data-close>Cerrar</button></div>
+  <div class="db" id="tplPick"></div>
+  <div class="df"><button class="btn" id="goTpls">Administrar plantillas</button></div>
+</dialog>
 <dialog id="dlgReview">
   <div class="dh"><h2>Revisión del formulario</h2><button class="btn" data-close>Cerrar</button></div>
   <div class="db" id="reviewBody"></div>
@@ -280,145 +331,20 @@ dialog::backdrop{background:rgba(10,25,40,.55)}
 <script>
 "use strict";
 /* ============================================================
-   DEFINICIÓN DEL CHECK LIST (Anexo)
-   Fila: [n°, tarea, placeholder de medición (opcional)]
-   ============================================================ */
-const SECTIONS = [
-  {id:'A', title:'A. Seguridad previa al trabajo', groups:[{rows:[
-    [1,'Permiso de trabajo emitido y corte de climatización coordinado con el cliente'],
-    [2,'Tiempo de descarga de condensadores del VDF cumplido y ausencia de tensión en el bus DC verificada'],
-    [3,'Rodetes bloqueados mecánicamente'],
-    [4,'Correas de los ventiladores retiradas antes de energizar los motores'],
-    [5,'Trabajo en altura: arnés, línea de vida y bordes delimitados'],
-    [6,'EPP completo, incluido EPP dieléctrico para trabajos eléctricos'],
-  ]}]},
-  {id:'B', title:'B. Ventilador principal de inyección', groups:[
-    {title:'Inspección visual (equipo detenido)', rows:[
-      [1,'Rodete: suciedad, fisuras, deformaciones, desgaste de álabes y fijación al eje'],
-      [2,'Eje y rodamientos: corrosión, pérdida de grasa y daños visibles'],
-      [3,'Poleas: desgaste y alineación aparente'],
-      [4,'Correas: grietas, desgaste y deshilachado'],
-      [5,'Soportes: base, pernos de anclaje, aisladores de vibración y conexión flexible al ducto'],
-      [6,'Datos de placa del motor y del ventilador (anotar)','kW / V / A / rpm'],
-    ]},
-    {title:'Pruebas eléctricas del motor (correas retiradas)', rows:[
-      [7,'Caja de bornes y conexiones'],
-      [8,'Resistencia de aislación (MΩ)','MΩ'],
-      [9,'Resistencia de devanados U-V / V-W / W-U (Ω)','U-V / V-W / W-U Ω'],
-    ]},
-    {title:'Motor operando desacoplado', rows:[
-      [10,'Tensión entre fases (V) y desbalance (%)','V · %'],
-      [11,'Corriente en vacío por fase (A)','L1 / L2 / L3 A'],
-      [12,'Temperatura del motor y conexiones por termografía (°C)','°C'],
-      [13,'Ruido o funcionamiento anormal del motor'],
-    ]},
-  ]},
-  {id:'C', title:'C. Ventilador de extracción (exhaust) — solo si corresponde', exhaust:true, groups:[
-    {title:'Inspección visual (equipo detenido)', rows:[
-      [1,'Rodete: suciedad, fisuras, deformaciones, desgaste de álabes y fijación al eje'],
-      [2,'Eje y rodamientos: corrosión, pérdida de grasa y daños visibles'],
-      [3,'Poleas y correas: desgaste, grietas y alineación aparente'],
-      [4,'Soportes: base y aisladores de vibración'],
-      [5,'Compuertas de extracción y alivio: estado de hojas y sellos'],
-      [6,'Datos de placa del motor y del ventilador (anotar)','kW / V / A / rpm'],
-    ]},
-    {title:'Pruebas eléctricas del motor (correas retiradas)', rows:[
-      [7,'Conexiones'],
-      [8,'Resistencia de aislación (MΩ)','MΩ'],
-    ]},
-    {title:'Motor operando desacoplado', rows:[
-      [9,'Tensión entre fases (V) y desbalance (%)','V · %'],
-      [10,'Corriente en vacío por fase (A)','L1 / L2 / L3 A'],
-      [11,'Temperatura por termografía (°C)','°C'],
-      [12,'Actuador de compuertas: recorrido completo y respuesta a la señal de control'],
-    ]},
-  ]},
-  {id:'D', title:'D. VDF del ventilador principal de inyección', groups:[
-    {title:'Datos e historial', rows:[
-      [1,'Marca, modelo, potencia y versión de firmware (anotar)','Marca / modelo / kW / FW'],
-      [2,'Respaldo de parámetros realizado'],
-      [3,'Alarmas, registro de fallas y horas de operación (anotar)','Alarmas / h'],
-    ]},
-    {title:'Inspección con el VDF desenergizado', rows:[
-      [4,'Polvo, humedad, corrosión y signos de sobrecalentamiento'],
-      [5,'Estado de condensadores'],
-      [6,'Ventiladores de enfriamiento y filtros'],
-      [7,'Apriete de bornes de potencia y control'],
-      [8,'Puesta a tierra'],
-      [9,'Protecciones de entrada (interruptor o fusibles)'],
-    ]},
-    {title:'Pruebas con el motor desacoplado (sin correas)', rows:[
-      [10,'Termografía de conexiones durante la prueba (°C)','°C'],
-      [11,'Tensión de entrada (V) y desbalance (%)','V · %'],
-      [12,'Corriente de salida (A)','A'],
-      [13,'Tensión del bus DC (V)','V DC'],
-      [14,'Temperatura del disipador (°C)','°C'],
-      [15,'Funcionamiento en todo el rango de velocidad'],
-      [16,'Rampas de aceleración y desaceleración'],
-      [17,'Respuesta a la señal de presión estática de ducto (simulada)'],
-      [18,'Compatibilidad de señales y protocolo con el controlador del retrofit'],
-    ]},
-  ]},
-  {id:'E', title:'E. Verificaciones complementarias y cierre', groups:[{rows:[
-    [1,'Sensor de presión estática de ducto y su toma de presión'],
-    [2,'Interruptores de flujo de aire (prueba por simulación) y seguridades de los ventiladores'],
-    [3,'Gabinete de ventiladores: limpieza, sellos de puertas y drenajes'],
-    [4,'Registro fotográfico y termográfico completo'],
-    [5,'Correas reinstaladas o rotuladas junto al equipo, según lo acordado con el cliente'],
-    [6,'Bloqueo y etiquetado (LOTO) aplicado al equipo y al VDF al finalizar las pruebas; equipo dejado bloqueado para la implementación del Retrofit'],
-  ]}]},
-];
-const FINAL = [
-  {id:'iny', t:'Ventilador principal de inyección'},
-  {id:'ext', t:'Ventilador de extracción (si corresponde)', exhaust:true},
-  {id:'vdf', t:'VDF del ventilador de inyección'},
-];
-const FOPTS = [['A','A'],['AO','AO'],['NoA','NoA'],['NA','N/A']];
-const FLABEL = {A:'Apto', AO:'Apto con observaciones', NoA:'No apto', NA:'N/A'};
-const SIGS = [
-  {id:'ctrl', t:'Técnico Grupo de Control'},
-  {id:'sup',  t:'Supervisor'},
-  {id:'cli',  t:'Representante del cliente'},
-];
-const SYM = {ok:'✓', bad:'✗', na:'N/A'};
-
-/* Datos de Efintel (encabezado del Descriptor de Trabajos) */
-const EFINTEL = {
-  sistema: 'SISTEMA DE GESTIÓN DE OPERACIONES',
-  documento: 'LEVANTAMIENTO DE EQUIPOS',
-  direccion: 'Juan Martínez de Rozas 634, Concepción.',
-  email: 'contacto@efintel.cl',
-  fono: '+56 41 2699806',
-  web: 'www.efintel.cl',
-};
-function brandHTML(){
-  return `<header class="brand">
-    <img src="logo.png" alt="Efintel — eficiencia energética inteligente">
-    <div><div class="b1">${EFINTEL.sistema}</div><div class="b2">${EFINTEL.documento}</div>
-      <div class="b3">Check list de terreno · Revisión de ventiladores y VDF de equipos HVAC</div></div>
-    <div class="bc">${EFINTEL.direccion}<br><a href="mailto:${EFINTEL.email}">${EFINTEL.email}</a><br><a href="tel:${EFINTEL.fono.replace(/\s/g,'')}">${EFINTEL.fono}</a><br><a href="https://${EFINTEL.web}" target="_blank" rel="noopener">${EFINTEL.web}</a></div>
-  </header>`;
-}
-document.getElementById('homeBrand').outerHTML = brandHTML();
-
-/* índice de filas */
-const ROWS = [];
-SECTIONS.forEach(s => s.groups.forEach(g => g.rows.forEach(r => ROWS.push({sec:s.id, key:s.id+r[0], n:r[0], t:r[1], m:r[2]||'', exhaust:!!s.exhaust}))));
-const ROW = Object.fromEntries(ROWS.map(r => [r.key, r]));
-
-/* ============================================================
    UTILIDADES
    ============================================================ */
 const $ = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => [...r.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+const clone = o => JSON.parse(JSON.stringify(o));
+const L = i => i < 26 ? String.fromCharCode(65+i) : 'Z' + (i-25);
 const pad2 = n => String(n).padStart(2,'0');
 const todayISO = () => { const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; };
 const nowHM = () => { const d=new Date(); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
 const fmtDate = iso => { if(!iso) return ''; const [y,m,d]=iso.split('-'); return `${d}-${m}-${y}`; };
 const fmtTs = ts => { const d=new Date(ts); return `${pad2(d.getDate())}-${pad2(d.getMonth()+1)}-${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
-function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2200); }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2400); }
 function confirmDlg(title, html, yes='Aceptar'){
   return new Promise(res=>{
     const d=$('#dlgConfirm'); $('#cfTitle').textContent=title; $('#cfBody').innerHTML=html; $('#cfYes').textContent=yes;
@@ -428,79 +354,469 @@ function confirmDlg(title, html, yes='Aceptar'){
   });
 }
 document.addEventListener('click', e => { const c=e.target.closest('[data-close]'); if(c) c.closest('dialog').close(); });
+function download(obj, name){
+  const blob=new Blob([JSON.stringify(obj)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+const slug = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w]+/g,'_').replace(/^_|_$/g,'') || 'HVAC';
+
+/* ============================================================
+   DATOS DE EFINTEL (encabezado)
+   ============================================================ */
+const EFINTEL = {
+  sistema: 'SISTEMA DE GESTIÓN DE OPERACIONES',
+  documento: 'LEVANTAMIENTO DE EQUIPOS',
+  direccion: 'Juan Martínez de Rozas 634, Concepción.',
+  email: 'contacto@efintel.cl',
+  fono: '+56 41 2699806',
+  web: 'www.efintel.cl',
+};
+function brandHTML(sub){
+  return `<header class="brand">
+    <img src="logo.png" alt="Efintel — eficiencia energética inteligente">
+    <div><div class="b1">${EFINTEL.sistema}</div><div class="b2">${EFINTEL.documento}</div>
+      <div class="b3">${esc(sub || 'Check list de terreno para equipos HVAC')}</div></div>
+    <div class="bc">${EFINTEL.direccion}<br><a href="mailto:${EFINTEL.email}">${EFINTEL.email}</a><br><a href="tel:${EFINTEL.fono.replace(/\s/g,'')}">${EFINTEL.fono}</a><br><a href="https://${EFINTEL.web}" target="_blank" rel="noopener">${EFINTEL.web}</a></div>
+  </header>`;
+}
+$('#homeBrand').outerHTML = brandHTML();
+
+/* ============================================================
+   PLANTILLAS BASE
+   Tarea: [texto] o [texto, unidad/placeholder si es medición]
+   ============================================================ */
+const tk = a => a.map(x => Array.isArray(x) ? (x[1] ? {t:x[0], m:x[1]} : {t:x[0]}) : {t:x});
+const sec = (titulo, grupos, opcional) => ({titulo, grupos: grupos.map(([g, ts]) => ({titulo:g||'', tareas:tk(ts)})), ...(opcional?{opcional}:{})});
+const NOTA_STD = 'En cada equipo marque ✓ (en buen estado), ✗ (con falla u observación) o N/A (no aplica). En las tareas de medición anote el valor y la unidad. Toda tarea marcada con ✗ debe tener observación y registro fotográfico.';
+const FIRMAS_STD = [{id:'ctrl',t:'Técnico responsable'},{id:'sup',t:'Supervisor'},{id:'cli',t:'Representante del cliente'}];
+const SEG_STD = sec('Seguridad previa al trabajo', [['', [
+  'Permiso de trabajo emitido y actividad coordinada con el cliente',
+  'Bloqueo y etiquetado (LOTO) aplicado antes de intervenir',
+  'EPP completo, incluido EPP dieléctrico para trabajos eléctricos',
+  'Trabajo en altura: arnés, línea de vida y bordes delimitados (si aplica)',
+]]]);
+
+const BUILTIN = [
+{
+  id:'retrofit-vent-vdf', builtin:true, nombre:'Ventiladores y VDF previo al Retrofit',
+  descripcion:'Revisión de ventiladores de inyección y extracción, y del VDF, previa al retrofit (Anexo del levantamiento TRANE Voyager).',
+  nota:'En cada equipo marque ✓ (en buen estado), ✗ (con falla u observación) o N/A (no aplica). En las tareas de medición anote el valor y la unidad. Los ventiladores no se hacen girar: las pruebas de motores y VDF se realizan con las correas retiradas. Toda tarea marcada con ✗ debe tener observación y registro fotográfico.',
+  tecnicos:['Técnico Grupo de Control','Técnico Grupo de Servicio Técnico'],
+  secciones:[
+    sec('Seguridad previa al trabajo', [['', [
+      'Permiso de trabajo emitido y corte de climatización coordinado con el cliente',
+      'Tiempo de descarga de condensadores del VDF cumplido y ausencia de tensión en el bus DC verificada',
+      'Rodetes bloqueados mecánicamente',
+      'Correas de los ventiladores retiradas antes de energizar los motores',
+      'Trabajo en altura: arnés, línea de vida y bordes delimitados',
+      'EPP completo, incluido EPP dieléctrico para trabajos eléctricos',
+    ]]]),
+    sec('Ventilador principal de inyección', [
+      ['Inspección visual (equipo detenido)', [
+        'Rodete: suciedad, fisuras, deformaciones, desgaste de álabes y fijación al eje',
+        'Eje y rodamientos: corrosión, pérdida de grasa y daños visibles',
+        'Poleas: desgaste y alineación aparente',
+        'Correas: grietas, desgaste y deshilachado',
+        'Soportes: base, pernos de anclaje, aisladores de vibración y conexión flexible al ducto',
+        ['Datos de placa del motor y del ventilador (anotar)','kW / V / A / rpm'],
+      ]],
+      ['Pruebas eléctricas del motor (correas retiradas)', [
+        'Caja de bornes y conexiones',
+        ['Resistencia de aislación (MΩ)','MΩ'],
+        ['Resistencia de devanados U-V / V-W / W-U (Ω)','U-V / V-W / W-U Ω'],
+      ]],
+      ['Motor operando desacoplado', [
+        ['Tensión entre fases (V) y desbalance (%)','V · %'],
+        ['Corriente en vacío por fase (A)','L1 / L2 / L3 A'],
+        ['Temperatura del motor y conexiones por termografía (°C)','°C'],
+        'Ruido o funcionamiento anormal del motor',
+      ]],
+    ]),
+    sec('Ventilador de extracción (exhaust) — solo si corresponde', [
+      ['Inspección visual (equipo detenido)', [
+        'Rodete: suciedad, fisuras, deformaciones, desgaste de álabes y fijación al eje',
+        'Eje y rodamientos: corrosión, pérdida de grasa y daños visibles',
+        'Poleas y correas: desgaste, grietas y alineación aparente',
+        'Soportes: base y aisladores de vibración',
+        'Compuertas de extracción y alivio: estado de hojas y sellos',
+        ['Datos de placa del motor y del ventilador (anotar)','kW / V / A / rpm'],
+      ]],
+      ['Pruebas eléctricas del motor (correas retiradas)', [
+        'Conexiones',
+        ['Resistencia de aislación (MΩ)','MΩ'],
+      ]],
+      ['Motor operando desacoplado', [
+        ['Tensión entre fases (V) y desbalance (%)','V · %'],
+        ['Corriente en vacío por fase (A)','L1 / L2 / L3 A'],
+        ['Temperatura por termografía (°C)','°C'],
+        'Actuador de compuertas: recorrido completo y respuesta a la señal de control',
+      ]],
+    ], {etiqueta:'sin ventilador de extracción'}),
+    sec('VDF del ventilador principal de inyección', [
+      ['Datos e historial', [
+        ['Marca, modelo, potencia y versión de firmware (anotar)','Marca / modelo / kW / FW'],
+        'Respaldo de parámetros realizado',
+        ['Alarmas, registro de fallas y horas de operación (anotar)','Alarmas / h'],
+      ]],
+      ['Inspección con el VDF desenergizado', [
+        'Polvo, humedad, corrosión y signos de sobrecalentamiento',
+        'Estado de condensadores',
+        'Ventiladores de enfriamiento y filtros',
+        'Apriete de bornes de potencia y control',
+        'Puesta a tierra',
+        'Protecciones de entrada (interruptor o fusibles)',
+      ]],
+      ['Pruebas con el motor desacoplado (sin correas)', [
+        ['Termografía de conexiones durante la prueba (°C)','°C'],
+        ['Tensión de entrada (V) y desbalance (%)','V · %'],
+        ['Corriente de salida (A)','A'],
+        ['Tensión del bus DC (V)','V DC'],
+        ['Temperatura del disipador (°C)','°C'],
+        'Funcionamiento en todo el rango de velocidad',
+        'Rampas de aceleración y desaceleración',
+        'Respuesta a la señal de presión estática de ducto (simulada)',
+        'Compatibilidad de señales y protocolo con el controlador del retrofit',
+      ]],
+    ]),
+    sec('Verificaciones complementarias y cierre', [['', [
+      'Sensor de presión estática de ducto y su toma de presión',
+      'Interruptores de flujo de aire (prueba por simulación) y seguridades de los ventiladores',
+      'Gabinete de ventiladores: limpieza, sellos de puertas y drenajes',
+      'Registro fotográfico y termográfico completo',
+      'Correas reinstaladas o rotuladas junto al equipo, según lo acordado con el cliente',
+      'Bloqueo y etiquetado (LOTO) aplicado al equipo y al VDF al finalizar las pruebas; equipo dejado bloqueado para la implementación del Retrofit',
+    ]]]),
+  ],
+  calificacion:{titulo:'Calificación final de los componentes', componentes:[
+    {id:'iny', t:'Ventilador principal de inyección'},
+    {id:'ext', t:'Ventilador de extracción (si corresponde)', seccion:'C'},
+    {id:'vdf', t:'VDF del ventilador de inyección'},
+  ]},
+  firmas:[{id:'ctrl',t:'Técnico Grupo de Control'},{id:'sup',t:'Supervisor'},{id:'cli',t:'Representante del cliente'}],
+},
+{
+  id:'general', builtin:true, nombre:'Levantamiento general de equipos HVAC',
+  descripcion:'Identificación, datos de placa, estado general, eléctrico, refrigeración y control. Sirve para cualquier equipo.',
+  nota:NOTA_STD, tecnicos:['Técnico responsable','Técnico de apoyo'],
+  secciones:[
+    clone(SEG_STD),
+    sec('Identificación y datos de placa', [['', [
+      ['Tipo de equipo (anotar)','Rooftop / split / chiller / UMA…'],
+      ['Marca y modelo','Marca / modelo'],
+      ['N° de serie','N° serie'],
+      ['Capacidad','TR / kW / BTU/h'],
+      ['Alimentación eléctrica','V / fases / Hz'],
+      ['Refrigerante y carga','Tipo / kg'],
+      ['Año de fabricación o antigüedad estimada','año'],
+      'Placa de características legible y en buen estado',
+    ]]]),
+    sec('Estado general e instalación', [['', [
+      'Gabinete y estructura: corrosión, golpes y paneles completos',
+      'Aislación térmica de cañerías y ductos',
+      'Soportes, bases y antivibratorios',
+      'Acceso y espacio de servicio adecuados',
+      'Limpieza general del equipo y su entorno',
+      'Drenajes de condensado',
+    ]]]),
+    sec('Sistema eléctrico', [['', [
+      'Tablero, protecciones y rotulación',
+      'Conexiones de potencia y control (apriete, recalentamiento)',
+      ['Tensión de alimentación entre fases','L1-L2 / L2-L3 / L3-L1 V'],
+      ['Corriente de operación por fase','L1 / L2 / L3 A'],
+      'Puesta a tierra',
+    ]]]),
+    sec('Sistema de refrigeración', [['', [
+      'Fugas visibles o manchas de aceite',
+      ['Presión de succión','psi'],
+      ['Presión de descarga','psi'],
+      ['Recalentamiento / subenfriamiento','K / K'],
+      'Estado de serpentines (aletas, suciedad, corrosión)',
+    ]]]),
+    sec('Control y operación', [['', [
+      'Termostato o controlador operativo',
+      'Sensores de temperatura y presión',
+      ['Integración BMS y protocolo','BACnet / Modbus / ninguno'],
+      ['Temperatura de inyección / retorno','°C / °C'],
+      'Ruidos o vibraciones anormales en operación',
+    ]]]),
+  ],
+  calificacion:{titulo:'Calificación final', componentes:[
+    {id:'eq', t:'Estado general del equipo'},
+    {id:'ele', t:'Sistema eléctrico'},
+    {id:'ref', t:'Sistema de refrigeración'},
+    {id:'ctl', t:'Control y operación'},
+  ]},
+  firmas:clone(FIRMAS_STD),
+},
+{
+  id:'rooftop-split-vrf', builtin:true, nombre:'Rooftop / Split / VRF',
+  descripcion:'Unidad exterior e interior, compresores, refrigerante, presiones, temperaturas, filtros y drenaje.',
+  nota:NOTA_STD, tecnicos:['Técnico responsable','Técnico de apoyo'],
+  secciones:[
+    clone(SEG_STD),
+    sec('Unidad exterior / condensadora', [
+      ['Inspección visual', [
+        'Serpentín condensador: limpieza, aletas y corrosión',
+        'Ventiladores del condensador: aspas, motor y rodamientos',
+        'Compresor(es): ruido, vibración y fugas de aceite',
+        'Contactores, relés y tarjetas de control',
+      ]],
+      ['Mediciones', [
+        ['Resistencia de aislación del compresor','MΩ'],
+        ['Corriente del compresor por fase','L1 / L2 / L3 A'],
+        ['Corriente de ventiladores del condensador','A'],
+      ]],
+    ]),
+    sec('Unidad interior / evaporadora', [['', [
+      'Serpentín evaporador: limpieza y estado de aletas',
+      'Ventilador del evaporador y transmisión (poleas, correas)',
+      ['Filtros: estado y medida','Medida / estado'],
+      'Bandeja de condensado, drenaje y sifón',
+      'Aislación interna del gabinete',
+      ['Corriente del motor del ventilador','A'],
+    ]]]),
+    sec('Circuito de refrigeración', [['', [
+      ['Tipo de refrigerante','R-410A / R-22 / R-32…'],
+      ['Presión de succión','psi'],
+      ['Presión de descarga','psi'],
+      ['Recalentamiento','K'],
+      ['Subenfriamiento','K'],
+      'Fugas (detector o espuma) y estado de válvulas de servicio',
+    ]]]),
+    sec('Operación y control', [['', [
+      ['Temperatura de inyección','°C'],
+      ['Temperatura de retorno','°C'],
+      ['Temperatura exterior','°C'],
+      'Termostato / control remoto / controlador central operativo',
+      'Alarmas o códigos de falla activos (anotar en observación)',
+    ]]]),
+    sec('Sistema eléctrico', [['', [
+      ['Tensión de alimentación entre fases','V'],
+      ['Desbalance de tensión','%'],
+      'Protecciones y conexiones',
+      'Puesta a tierra',
+    ]]]),
+  ],
+  calificacion:{titulo:'Calificación final', componentes:[
+    {id:'ext', t:'Unidad exterior / condensadora'},
+    {id:'int', t:'Unidad interior / evaporadora'},
+    {id:'ref', t:'Circuito de refrigeración'},
+    {id:'ele', t:'Sistema eléctrico y control'},
+  ]},
+  firmas:clone(FIRMAS_STD),
+},
+{
+  id:'chiller-bombas', builtin:true, nombre:'Chiller y bombas',
+  descripcion:'Compresores, evaporador y condensador, temperaturas y presiones de agua, bombas, hidráulica y tablero.',
+  nota:NOTA_STD, tecnicos:['Técnico responsable','Técnico de apoyo'],
+  secciones:[
+    clone(SEG_STD),
+    sec('Chiller: compresores y refrigeración', [['', [
+      ['Horas de operación y arranques','h / arranques'],
+      ['Presión de succión / descarga','psi / psi'],
+      ['Temperatura de descarga','°C'],
+      ['Corriente del compresor por fase','L1 / L2 / L3 A'],
+      'Nivel y estado del aceite',
+      'Alarmas e historial de fallas (anotar en observación)',
+    ]]]),
+    sec('Intercambiadores', [['', [
+      ['Agua evaporador: entrada / salida','°C / °C'],
+      ['Agua condensador: entrada / salida (enfriado por agua)','°C / °C'],
+      ['Caída de presión en evaporador','kPa'],
+      'Flujostato y protecciones de flujo',
+      'Condensador por aire: serpentín y ventiladores (si aplica)',
+    ]]]),
+    sec('Bombas', [['', [
+      ['Datos de placa de bomba y motor','kW / V / A / rpm'],
+      ['Corriente del motor por fase','L1 / L2 / L3 A'],
+      ['Presión de succión / descarga','kPa / kPa'],
+      'Sello mecánico sin fugas',
+      'Rodamientos: ruido y temperatura',
+      'Acoplamiento y alineación aparente',
+      'VDF de bomba (si aplica): estado y alarmas',
+    ]]]),
+    sec('Sistema hidráulico', [['', [
+      'Válvulas de corte y de control',
+      'Filtros tipo Y / strainers',
+      ['Tanque de expansión: presión de precarga','kPa'],
+      'Aislación de cañerías',
+      'Tratamiento de agua y purgas',
+    ]]]),
+    sec('Tablero y control', [['', [
+      'Protecciones y conexiones del tablero',
+      'Controlador del chiller y setpoints (anotar en observación)',
+      ['Integración BMS y protocolo','BACnet / Modbus / ninguno'],
+      'Puesta a tierra',
+    ]]]),
+  ],
+  calificacion:{titulo:'Calificación final', componentes:[
+    {id:'chi', t:'Chiller'},
+    {id:'bom', t:'Bombas'},
+    {id:'hid', t:'Sistema hidráulico'},
+    {id:'ctl', t:'Tablero y control'},
+  ]},
+  firmas:clone(FIRMAS_STD),
+},
+{
+  id:'uma-ahu-fancoil', builtin:true, nombre:'UMA / AHU / Fan coil',
+  descripcion:'Ventiladores, serpentines, filtros, compuertas, válvulas, VDF, sensores y gabinete.',
+  nota:NOTA_STD, tecnicos:['Técnico responsable','Técnico de apoyo'],
+  secciones:[
+    clone(SEG_STD),
+    sec('Ventiladores (inyección / retorno)', [['', [
+      'Rodete: suciedad, fisuras, balanceo aparente',
+      'Rodamientos: ruido y lubricación',
+      'Transmisión: poleas y correas',
+      ['Resistencia de aislación del motor','MΩ'],
+      ['Corriente del motor por fase','L1 / L2 / L3 A'],
+    ]]]),
+    sec('Serpentines y filtros', [['', [
+      'Serpentín de frío: limpieza y aletas',
+      'Serpentín de calor (si aplica)',
+      ['Filtros: prefiltro / final y caída de presión','Pa'],
+      'Bandeja de condensado, drenaje y sifón',
+    ]]]),
+    sec('Compuertas y válvulas', [['', [
+      'Compuerta de aire exterior y de retorno',
+      'Actuadores de compuertas: recorrido y respuesta',
+      ['Válvula de control de agua: posición y respuesta','%'],
+    ]]]),
+    sec('Control y VDF', [['', [
+      'VDF: estado, alarmas y parámetros',
+      'Sensores de temperatura y humedad',
+      ['Presión estática de ducto','Pa'],
+      'Interruptor de flujo de aire y seguridades',
+      ['Integración BMS y protocolo','BACnet / Modbus / ninguno'],
+    ]]]),
+    sec('Gabinete', [['', [
+      'Paneles, sellos y puertas',
+      'Aislación interna',
+      'Limpieza y corrosión',
+    ]]]),
+  ],
+  calificacion:{titulo:'Calificación final', componentes:[
+    {id:'ven', t:'Ventiladores'},
+    {id:'ser', t:'Serpentines y filtros'},
+    {id:'ctl', t:'Control y VDF'},
+    {id:'gab', t:'Gabinete'},
+  ]},
+  firmas:clone(FIRMAS_STD),
+},
+];
+/* asigna letras a las secciones según su posición */
+function normalizeTpl(t){
+  t.secciones.forEach((s,i)=>{ s.id=L(i); s.grupos=s.grupos||[]; });
+  t.calificacion = t.calificacion || {titulo:'Calificación final', componentes:[]};
+  t.calificacion.componentes.forEach((c,i)=>{ c.id=c.id||('c'+i+uid().slice(-3)); });
+  t.firmas=(t.firmas||[]).map((f,i)=>({id:f.id||('f'+i+uid().slice(-3)), t:f.t}));
+  t.tecnicos = t.tecnicos || ['Técnico responsable','Técnico de apoyo'];
+  return t;
+}
+BUILTIN.forEach(normalizeTpl);
+const BUILTIN_BY_ID = Object.fromEntries(BUILTIN.map(t=>[t.id,t]));
+
+/* compila una plantilla en estructuras de trabajo (con caché) */
+const CC = new WeakMap();
+function compile(tpl){
+  if(CC.has(tpl)) return CC.get(tpl);
+  const SECTIONS = tpl.secciones;
+  const ROWS=[];
+  SECTIONS.forEach(s=>{ let n=0; s.grupos.forEach(g=>g.tareas.forEach(t=>{ n++; ROWS.push({sec:s.id, key:s.id+n, n, t:t.t, m:t.m||'', opt:!!s.opcional}); })); });
+  const ROW=Object.fromEntries(ROWS.map(r=>[r.key,r]));
+  const FINAL=tpl.calificacion?.componentes||[];
+  const hasCal=FINAL.length>0;
+  const r={SECTIONS, ROWS, ROW, FINAL, SIGS:tpl.firmas||[], hasCal,
+    calL:L(SECTIONS.length), obsL:L(SECTIONS.length+(hasCal?1:0)),
+    calTitulo:tpl.calificacion?.titulo||'Calificación final', tecnicos:tpl.tecnicos||['Técnico responsable','Técnico de apoyo']};
+  CC.set(tpl,r); return r;
+}
+const ctxOf = ins => compile(ins.tpl);
+const FOPTS = [['A','A'],['AO','AO'],['NoA','NoA'],['NA','N/A']];
+const SYM = {ok:'✓', bad:'✗', na:'N/A'};
 
 /* ============================================================
    ALMACENAMIENTO (IndexedDB, con respaldo en memoria)
    ============================================================ */
-let db = null; const mem = {insp:new Map(), photos:new Map()};
+let db = null; const mem = {insp:new Map(), photos:new Map(), tpl:new Map()};
 function openDB(){
   return new Promise(res=>{
     try{
-      const r=indexedDB.open('efintel_checklist_voyager',1);
-      r.onupgradeneeded=()=>{ const d=r.result; d.createObjectStore('insp',{keyPath:'id'}); d.createObjectStore('photos',{keyPath:'id'}).createIndex('insp','inspId'); };
+      const r=indexedDB.open('efintel_checklist_voyager',2);
+      r.onupgradeneeded=()=>{ const d=r.result;
+        if(!d.objectStoreNames.contains('insp')) d.createObjectStore('insp',{keyPath:'id'});
+        if(!d.objectStoreNames.contains('photos')) d.createObjectStore('photos',{keyPath:'id'}).createIndex('insp','inspId');
+        if(!d.objectStoreNames.contains('tpl')) d.createObjectStore('tpl',{keyPath:'id'}); };
       r.onsuccess=()=>res(r.result); r.onerror=()=>res(null);
     }catch(e){ res(null); }
   });
 }
 const rq = r => new Promise((res,rej)=>{ r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
 const store = (s,m='readonly') => db.transaction(s,m).objectStore(s);
-const dbAll = async s => db ? rq(store(s).getAll()) : [...mem[s].values()];
-const dbPut = async (s,v) => db ? rq(store(s,'readwrite').put(v)) : mem[s].set(v.id, structuredClone(v));
+const dbAll = async s => db ? rq(store(s).getAll()) : [...mem[s].values()].map(clone);
+const dbPut = async (s,v) => db ? rq(store(s,'readwrite').put(v)) : mem[s].set(v.id, clone(v));
 const dbDel = async (s,k) => db ? rq(store(s,'readwrite').delete(k)) : mem[s].delete(k);
 const dbPhotosOf = async id => db ? rq(store('photos').index('insp').getAll(id)) : [...mem.photos.values()].filter(p=>p.inspId===id);
+async function allTemplates(){ const own=(await dbAll('tpl')).sort((a,b)=>a.nombre.localeCompare(b.nombre)); return [...BUILTIN, ...own]; }
 
 /* ============================================================
-   MODELO
+   MODELO DE INSPECCIÓN
    ============================================================ */
 const newEquipo = (e={}) => ({id: uid(), tag: e.tag||'', desc: e.desc||'', ubic: e.ubic||''});
-function newInsp(base){
+function newInsp(tpl, base){
   const h = base?.header || {};
+  const t = clone(tpl); delete t.builtin;
+  const c = compile(t);
   return {
-    id: uid(), created: Date.now(), updated: Date.now(),
-    header: {
-      fecha: todayISO(), cliente: h.cliente || '', trabajo: h.trabajo || 'Levantamiento de equipos HVAC', ot: h.ot || '',
-      tecControl: h.tecControl || '', tecServicio: h.tecServicio || '', horaIni:'', horaFin:''
-    },
+    id: uid(), created: Date.now(), updated: Date.now(), tplId: tpl.id, tpl: t,
+    header: { fecha: todayISO(), cliente: h.cliente || '', trabajo: h.trabajo || tpl.nombre, ot: h.ot || '',
+      tecControl: h.tecControl || '', tecServicio: h.tecServicio || '', horaIni:'', horaFin:'' },
     equipos: base?.equipos?.length ? base.equipos.map(newEquipo) : [newEquipo()],
-    cells:{}, obs:{}, noExh:{}, final:{}, finalObs:{}, obsGen:'',
-    firmas: Object.fromEntries(SIGS.map(s=>[s.id,{nombre: base?.firmas?.[s.id]?.nombre || '', fecha:'', img:'', ts:0}])),
+    cells:{}, obs:{}, noSec:{}, final:{}, finalObs:{}, obsGen:'',
+    firmas: Object.fromEntries(c.SIGS.map(s=>[s.id,{nombre: base?.firmas?.[s.id]?.nombre || '', fecha:'', img:'', ts:0}])),
   };
 }
-/* Inspecciones creadas con la versión de 3 equipos fijos (L1, C1, L5) */
+/* Inspecciones de versiones anteriores (3 equipos fijos y sin plantilla) */
 function migrate(ins){
-  ['cells','obs','noExh','final','finalObs','firmas'].forEach(k=>ins[k]=ins[k]||{});
+  ['cells','obs','final','finalObs','firmas'].forEach(k=>ins[k]=ins[k]||{});
+  if(!ins.tpl){ ins.tpl=clone(BUILTIN_BY_ID['retrofit-vent-vdf']); delete ins.tpl.builtin; ins.tplId='retrofit-vent-vdf'; }
+  ins.noSec = ins.noSec || {};
+  if(ins.noExh){ if(Object.values(ins.noExh).some(Boolean)) ins.noSec.C = {...ins.noExh, ...(ins.noSec.C||{})}; delete ins.noExh; }
   if(!Array.isArray(ins.equipos)){
     ins.equipos = ['L1','C1','L5'].map(id=>({id, tag:id, desc: ins.header?.equipo || '', ubic:''}));
     ins.header.trabajo = ins.header.trabajo || 'Inspección y diagnóstico previo al Retrofit';
     ins.header.ot = ins.header.ot || '';
   }
+  compile(ins.tpl).SIGS.forEach(s=>{ ins.firmas[s.id] = ins.firmas[s.id] || {nombre:'',fecha:'',img:'',ts:0}; });
   return ins;
 }
-let cur = null, curPhotos = [], EQ = [], eqFilter = '';
+let cur=null, X=null, curPhotos=[], EQ=[], eqFilter='';
 const eqIds = ins => (ins.equipos||[]).map(e=>e.id);
 const eqName = (id, ins=cur) => { const i=ins.equipos.findIndex(e=>e.id===id); return i<0 ? '' : (ins.equipos[i].tag.trim() || `Equipo ${i+1}`); };
 const cell = (k,eq) => cur.cells[k+'|'+eq] || (cur.cells[k+'|'+eq] = {s:'', v:''});
-const isNoExh = (row, eq) => row.exhaust && cur.noExh[eq];
-const effS = (k,eq,ins=cur) => (ROW[k].exhaust && ins.noExh[eq]) ? 'na' : (ins.cells[k+'|'+eq]?.s || '');
-const effF = (c,eq,ins=cur) => (c==='ext' && ins.noExh[eq]) ? 'NA' : (ins.final[c+'|'+eq] || '');
+const secOff = (secId, eq, ins=cur) => !!ins.noSec?.[secId]?.[eq];
+function effS(k,eq,ins=cur){ const r=ctxOf(ins).ROW[k]; if(r && r.opt && secOff(r.sec,eq,ins)) return 'na'; return ins.cells[k+'|'+eq]?.s || ''; }
+function effF(c,eq,ins=cur){ const comp=ctxOf(ins).FINAL.find(x=>x.id===c); if(comp?.seccion && secOff(comp.seccion,eq,ins)) return 'NA'; return ins.final[c+'|'+eq] || ''; }
 
 function progress(ins){
-  let tot=0, done=0; const bySec={}; const EQ=eqIds(ins);
-  ROWS.forEach(r=>{ const b=bySec[r.sec]||(bySec[r.sec]={t:0,d:0}); EQ.forEach(eq=>{ tot++; b.t++; if(effS(r.key,eq,ins)){done++; b.d++;} }); });
-  const f={t:0,d:0}; FINAL.forEach(c=>EQ.forEach(eq=>{ tot++; f.t++; if(effF(c.id,eq,ins)){done++; f.d++;} })); bySec.F=f;
-  const sg={t:SIGS.length,d:SIGS.filter(s=>ins.firmas[s.id]?.img).length}; bySec.S=sg; tot+=sg.t; done+=sg.d;
+  const C=ctxOf(ins), E=eqIds(ins); let tot=0, done=0; const bySec={};
+  C.ROWS.forEach(r=>{ const b=bySec[r.sec]||(bySec[r.sec]={t:0,d:0}); E.forEach(eq=>{ tot++; b.t++; if(effS(r.key,eq,ins)){done++; b.d++;} }); });
+  const f={t:0,d:0}; C.FINAL.forEach(c=>E.forEach(eq=>{ tot++; f.t++; if(effF(c.id,eq,ins)){done++; f.d++;} })); bySec.CAL=f;
+  const sg={t:C.SIGS.length,d:C.SIGS.filter(s=>ins.firmas[s.id]?.img).length}; bySec.S=sg; tot+=sg.t; done+=sg.d;
   return {pct: tot ? Math.round(done*100/tot) : 0, bySec};
 }
+
+/* ============================================================
+   NAVEGACIÓN ENTRE PANTALLAS
+   ============================================================ */
+function show(id){ ['home','tplView','edView','formView'].forEach(v=>$('#'+v).classList.toggle('hidden', v!==id)); window.scrollTo(0,0); }
+document.addEventListener('click', e=>{ const n=e.target.closest('[data-nav]'); if(n){ if(n.dataset.nav==='home') showHome(); } });
 
 /* ============================================================
    GUARDADO AUTOMÁTICO
    ============================================================ */
 let saveT=null;
-function scheduleSave(){
-  $('#saveState').textContent='Guardando…';
-  clearTimeout(saveT); saveT=setTimeout(saveNow, 400);
-  updateChips();
-}
+function scheduleSave(){ $('#saveState').textContent='Guardando…'; clearTimeout(saveT); saveT=setTimeout(saveNow, 400); updateChips(); }
 async function saveNow(){
   clearTimeout(saveT); saveT=null; if(!cur) return;
   cur.updated=Date.now();
@@ -514,16 +830,17 @@ window.addEventListener('visibilitychange', ()=>{ if(document.hidden && saveT) s
    ============================================================ */
 async function showHome(){
   if(saveT) await saveNow();
-  cur=null; curPhotos=[];
-  $('#formView').classList.add('hidden'); $('#home').classList.remove('hidden');
+  cur=null; X=null; curPhotos=[];
+  show('home');
   const list = (await dbAll('insp')).map(migrate).sort((a,b)=>b.updated-a.updated);
   const box=$('#ilist');
-  if(!list.length){ box.innerHTML='<div class="empty card">Aún no hay inspecciones. Toca <b>+ Nueva inspección</b> para comenzar.</div>'; return; }
+  if(!list.length){ box.innerHTML='<div class="empty card">Aún no hay inspecciones. Toca <b>+ Nueva inspección</b> y elige el tipo de levantamiento.</div>'; return; }
   box.innerHTML = list.map(i=>{
-    const p=progress(i), signed=SIGS.every(s=>i.firmas[s.id]?.img);
+    const p=progress(i), sigs=ctxOf(i).SIGS, signed=sigs.length && sigs.every(s=>i.firmas[s.id]?.img);
     return `<div class="icard" data-id="${i.id}">
       <div><h3>${esc(i.header.cliente||'Sin cliente')} · ${esc(fmtDate(i.header.fecha))}${signed?'<span class="badge ok">Firmado</span>':'<span class="badge pend">En curso</span>'}</h3>
-      <div class="meta">${esc(i.header.trabajo||'')} · ${i.equipos.length} equipo${i.equipos.length===1?'':'s'}${i.equipos.length?': '+esc(i.equipos.map(e=>eqName(e.id,i)).join(', ')):''} · Téc.: ${esc(i.header.tecControl||'—')} · Modificado ${fmtTs(i.updated)}</div>
+      <div class="meta"><b>${esc(i.tpl.nombre)}</b> · ${i.equipos.length} equipo${i.equipos.length===1?'':'s'}${i.equipos.length?': '+esc(i.equipos.map(e=>eqName(e.id,i)).join(', ')):''}</div>
+      <div class="meta">Téc.: ${esc(i.header.tecControl||'—')} · Modificado ${fmtTs(i.updated)}</div>
       <div class="bar"><i style="width:${p.pct}%"></i></div><div class="meta">${p.pct}% completado</div></div>
       <div class="iacts"><button class="btn primary" data-act="open">Abrir</button><button class="btn" data-act="dup">Duplicar</button><button class="btn" data-act="json">.json</button><button class="btn danger" data-act="del">Eliminar</button></div>
     </div>`;
@@ -531,34 +848,217 @@ async function showHome(){
 }
 $('#ilist').addEventListener('click', async e=>{
   const b=e.target.closest('[data-act]'); if(!b) return;
-  const id=b.closest('.icard').dataset.id; const list=await dbAll('insp'); const ins=list.find(x=>x.id===id); if(!ins) return; migrate(ins);
+  const id=b.closest('.icard').dataset.id; const ins=(await dbAll('insp')).find(x=>x.id===id); if(!ins) return; migrate(ins);
   if(b.dataset.act==='open') openInsp(ins);
-  if(b.dataset.act==='dup'){ const n=newInsp(ins); await dbPut('insp',n); toast('Copia creada con la cabecera y la lista de equipos'); showHome(); }
+  if(b.dataset.act==='dup'){ const n=newInsp(ins.tpl, ins); n.tplId=ins.tplId; await dbPut('insp',n); toast('Copia creada con la misma plantilla, cabecera y equipos'); showHome(); }
   if(b.dataset.act==='json') exportJson(ins);
   if(b.dataset.act==='del'){
-    if(await confirmDlg('Eliminar inspección', `¿Eliminar la inspección de <b>${esc(ins.header.cliente)} del ${esc(fmtDate(ins.header.fecha))}</b> y sus fotos? Esta acción no se puede deshacer.`, 'Eliminar')){
+    if(await confirmDlg('Eliminar inspección', `¿Eliminar la inspección de <b>${esc(ins.header.cliente||'Sin cliente')} del ${esc(fmtDate(ins.header.fecha))}</b> y sus fotos? Esta acción no se puede deshacer.`, 'Eliminar')){
       for(const p of await dbPhotosOf(id)) await dbDel('photos',p.id);
       await dbDel('insp',id); showHome();
     }
   }
 });
-$('#btnNew').onclick = async ()=>{ const n=newInsp(); await dbPut('insp',n); openInsp(n); };
+/* nueva inspección: elegir plantilla */
+async function pickTemplate(){
+  const ts=await allTemplates();
+  $('#tplPick').innerHTML = ts.map(t=>{ const n=compile(t).ROWS.length;
+    return `<button type="button" class="pick" data-tpl="${esc(t.id)}"><b>${esc(t.nombre)} ${t.builtin?'<small class="badge base">Base</small>':'<small class="badge own">Propia</small>'}</b><span>${esc(t.descripcion||'')} · ${n} tareas</span></button>`; }).join('');
+  $('#dlgTpl').showModal();
+}
+$('#tplPick').addEventListener('click', async e=>{
+  const b=e.target.closest('[data-tpl]'); if(!b) return;
+  const t=(await allTemplates()).find(x=>x.id===b.dataset.tpl); $('#dlgTpl').close();
+  const n=newInsp(t); await dbPut('insp',n); openInsp(n);
+});
+$('#btnNew').onclick = pickTemplate;
+$('#goTpls').onclick = ()=>{ $('#dlgTpl').close(); showTemplates(); };
 $('#btnBack').onclick = showHome;
+$('#btnTpls').onclick = showTemplates;
 
 /* ============================================================
-   FORMULARIO
+   PANTALLA DE PLANTILLAS
+   ============================================================ */
+async function showTemplates(){
+  if(saveT) await saveNow();
+  cur=null; show('tplView');
+  const ts=await allTemplates();
+  $('#tlist').innerHTML = ts.map(t=>{ const c=compile(t);
+    return `<div class="tplcard" data-tid="${esc(t.id)}">
+      <div><h3>${esc(t.nombre)} ${t.builtin?'<span class="badge base">Base</span>':'<span class="badge own">Propia</span>'}</h3>
+      <div class="meta">${esc(t.descripcion||'')}</div>
+      <div class="meta">${c.SECTIONS.length} secciones · ${c.ROWS.length} tareas · ${c.FINAL.length} componentes a calificar · ${c.SIGS.length} firmas</div></div>
+      <div class="iacts"><button class="btn primary" data-tact="use">Usar</button>
+        ${t.builtin?'':'<button class="btn" data-tact="edit">Editar</button>'}
+        <button class="btn" data-tact="copy">Copiar y editar</button>
+        <button class="btn" data-tact="export">.json</button>
+        ${t.builtin?'':'<button class="btn danger" data-tact="del">Eliminar</button>'}</div>
+    </div>`; }).join('');
+}
+$('#tlist').addEventListener('click', async e=>{
+  const b=e.target.closest('[data-tact]'); if(!b) return;
+  const t=(await allTemplates()).find(x=>x.id===b.closest('[data-tid]').dataset.tid); if(!t) return;
+  const a=b.dataset.tact;
+  if(a==='use'){ const n=newInsp(t); await dbPut('insp',n); openInsp(n); }
+  if(a==='edit') openEditor(clone(t), false);
+  if(a==='copy'){ const c=clone(t); c.id=uid(); c.nombre=t.nombre+' (copia)'; delete c.builtin; c.basadaEn=t.id; openEditor(c, true); }
+  if(a==='export'){ const c=clone(t); delete c.builtin; download({format:'efintel-checklist-plantilla', version:1, plantilla:c}, `Plantilla_${slug(t.nombre)}.json`); toast('Plantilla exportada'); }
+  if(a==='del'){
+    if(await confirmDlg('Eliminar plantilla', `¿Eliminar la plantilla <b>${esc(t.nombre)}</b>? Las inspecciones ya creadas con ella no se ven afectadas.`, 'Eliminar')){ await dbDel('tpl', t.id); showTemplates(); }
+  }
+});
+$('#btnTplNew').onclick = ()=> openEditor(normalizeTpl({id:uid(), nombre:'Nueva plantilla', descripcion:'', nota:NOTA_STD, tecnicos:['Técnico responsable','Técnico de apoyo'],
+  secciones:[clone(SEG_STD), {titulo:'Nueva sección', grupos:[{titulo:'', tareas:[{t:''}]}]}], calificacion:{titulo:'Calificación final', componentes:[{id:'eq',t:'Estado general del equipo'}]}, firmas:clone(FIRMAS_STD)}), true);
+$('#importTpl').addEventListener('change', async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  try{
+    const d=JSON.parse(await f.text()); const t=d.plantilla;
+    if(d.format!=='efintel-checklist-plantilla' || !t?.secciones) throw new Error('El archivo no es una plantilla de este formulario.');
+    delete t.builtin; if(!t.id || BUILTIN_BY_ID[t.id]) t.id=uid();
+    const exists=(await dbAll('tpl')).some(x=>x.id===t.id);
+    if(exists && !await confirmDlg('Importar plantilla',`Ya existe la plantilla <b>${esc(t.nombre)}</b> en esta tablet. ¿Reemplazarla?`,'Reemplazar')) return;
+    normalizeTpl(t); await dbPut('tpl', t); toast('Plantilla importada'); showTemplates();
+  }catch(err){ toast('Error al importar: '+err.message); }
+});
+
+/* ============================================================
+   EDITOR DE PLANTILLAS
+   ============================================================ */
+let ed=null, edIsNew=false;
+function openEditor(t, isNew){
+  ed=t; edIsNew=isNew;
+  ed.secciones.forEach(s=>{ s._k = s._k || s.id || uid(); });       // clave estable mientras se edita
+  $('#edTitle').textContent = isNew ? 'Nueva plantilla' : 'Editar plantilla';
+  show('edView'); renderEditor();
+}
+function renderEditor(){
+  const optSecs = ed.secciones.map((s,i)=>({k:s._k, label:`${L(i)}. ${s.titulo||'Sin título'}`, on:!!s.opcional}));
+  let h = `<div class="card"><div class="grid2">
+    <div class="field"><label>Nombre de la plantilla</label><input data-e="nombre" value="${esc(ed.nombre)}"></div>
+    <div class="field"><label>Descripción breve</label><input data-e="descripcion" value="${esc(ed.descripcion)}"></div>
+    <div class="field"><label>Rótulo técnico 1</label><input data-e="tec0" value="${esc(ed.tecnicos[0]||'')}"></div>
+    <div class="field"><label>Rótulo técnico 2</label><input data-e="tec1" value="${esc(ed.tecnicos[1]||'')}"></div>
+  </div>
+  <div class="field" style="margin-top:12px"><label>Instrucciones que verá el técnico</label><textarea data-e="nota" rows="3">${esc(ed.nota)}</textarea></div></div>`;
+  h += `<h2 class="sec-title">Secciones y tareas</h2><p class="edh">Escribe la unidad en «Medición» solo si la tarea pide anotar un valor (por ejemplo: MΩ, A, °C). Las tareas vacías se descartan al guardar.</p>`;
+  ed.secciones.forEach((s,si)=>{
+    let n=0;
+    h += `<div class="edsec" data-si="${si}">
+      <div class="edrow"><span class="num">${L(si)}</span><input data-e="sec.titulo" value="${esc(s.titulo)}" placeholder="Título de la sección">
+        <div class="ibs"><button type="button" class="ib" data-ea="secUp" title="Subir">↑</button><button type="button" class="ib" data-ea="secDown" title="Bajar">↓</button><button type="button" class="ib del" data-ea="secDel" title="Eliminar sección">✕</button></div></div>
+      <div class="edrow" style="margin-top:8px"><label class="toggle"><input type="checkbox" data-e="sec.opt" ${s.opcional?'checked':''}> Sección opcional por equipo</label>
+        ${s.opcional?`<input data-e="sec.optLabel" value="${esc(s.opcional.etiqueta||'')}" placeholder="Rótulo, ej.: sin ventilador de extracción">`:''}</div>
+      ${s.grupos.map((g,gi)=>`<div class="edgrp" data-gi="${gi}">
+        <div class="edrow"><input data-e="grp.titulo" value="${esc(g.titulo)}" placeholder="Subtítulo del grupo (opcional)"><button type="button" class="ib del" data-ea="grpDel" title="Eliminar grupo">✕</button></div>
+        ${g.tareas.map((t,ti)=>{ n++; return `<div class="edtask" data-ti="${ti}"><span class="n">${n}</span><input data-e="task.t" value="${esc(t.t)}" placeholder="Descripción de la tarea">
+          <input class="m" data-e="task.m" value="${esc(t.m||'')}" placeholder="Medición (opcional)">
+          <div class="ibs"><button type="button" class="ib" data-ea="taskUp" title="Subir">↑</button><button type="button" class="ib" data-ea="taskDown" title="Bajar">↓</button><button type="button" class="ib del" data-ea="taskDel" title="Eliminar tarea">✕</button></div></div>`; }).join('')}
+        <button type="button" class="addb" data-ea="taskAdd">+ Tarea</button>
+      </div>`).join('')}
+      <button type="button" class="addb" data-ea="grpAdd">+ Grupo de tareas</button>
+    </div>`;
+  });
+  h += `<button type="button" class="btn primary" data-ea="secAdd">+ Agregar sección</button>`;
+  h += `<h2 class="sec-title">Calificación final</h2><div class="card">
+    <div class="field"><label>Título</label><input data-e="calTitulo" value="${esc(ed.calificacion.titulo)}"></div>
+    <p class="edh">Cada componente se califica por equipo con A / AO / NoA / N/A. Si lo vinculas a una sección opcional, queda N/A cuando el equipo no la tiene.</p>
+    ${ed.calificacion.componentes.map((c,ci)=>`<div class="edrow" data-ci="${ci}" style="margin-top:8px"><input data-e="comp.t" value="${esc(c.t)}" placeholder="Componente">
+      <select data-e="comp.sec"><option value="">Sin vincular</option>${optSecs.filter(o=>o.on).map(o=>`<option value="${esc(o.k)}" ${c.seccion===o.k?'selected':''}>${esc(o.label)}</option>`).join('')}</select>
+      <button type="button" class="ib del" data-ea="compDel">✕</button></div>`).join('')}
+    <button type="button" class="addb" data-ea="compAdd">+ Componente</button></div>`;
+  h += `<h2 class="sec-title">Firmas</h2><div class="card">
+    ${ed.firmas.map((f,fi)=>`<div class="edrow" data-fi="${fi}" style="margin-top:8px"><input data-e="firma.t" value="${esc(f.t)}" placeholder="Cargo de quien firma"><button type="button" class="ib del" data-ea="firmaDel">✕</button></div>`).join('')}
+    <button type="button" class="addb" data-ea="firmaAdd">+ Firma</button></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin:16px 0 40px"><button class="btn" id="edCancel2">Cancelar</button><button class="btn primary" id="edSave2">Guardar plantilla</button></div>`;
+  $('#editor').innerHTML = h;
+  $$('#editor textarea').forEach(autoGrow);
+}
+const edRerender = () => { const y=window.scrollY; renderEditor(); window.scrollTo(0,y); };
+function edPath(el){
+  const si=+el.closest('[data-si]')?.dataset.si, gi=+el.closest('[data-gi]')?.dataset.gi, ti=+el.closest('[data-ti]')?.dataset.ti;
+  const s=ed.secciones[si], g=s?.grupos[gi], t=g?.tareas[ti]; return {si,gi,ti,s,g,t};
+}
+const mv = (arr,i,d) => { const j=i+d; if(j<0||j>=arr.length) return; [arr[i],arr[j]]=[arr[j],arr[i]]; };
+$('#editor').addEventListener('input', e=>{
+  const el=e.target, k=el.dataset.e; if(!k) return; if(el.tagName==='TEXTAREA') autoGrow(el);
+  const p=edPath(el);
+  if(k==='nombre'||k==='descripcion'||k==='nota') ed[k]=el.value;
+  else if(k==='tec0') ed.tecnicos[0]=el.value; else if(k==='tec1') ed.tecnicos[1]=el.value;
+  else if(k==='sec.titulo') p.s.titulo=el.value;
+  else if(k==='sec.optLabel') p.s.opcional.etiqueta=el.value;
+  else if(k==='grp.titulo') p.g.titulo=el.value;
+  else if(k==='task.t') p.t.t=el.value;
+  else if(k==='task.m') p.t.m=el.value;
+  else if(k==='calTitulo') ed.calificacion.titulo=el.value;
+  else if(k==='comp.t') ed.calificacion.componentes[+el.closest('[data-ci]').dataset.ci].t=el.value;
+  else if(k==='firma.t') ed.firmas[+el.closest('[data-fi]').dataset.fi].t=el.value;
+});
+$('#editor').addEventListener('change', e=>{
+  const el=e.target, k=el.dataset.e, p=edPath(el);
+  if(k==='sec.opt'){ if(el.checked) p.s.opcional={etiqueta:'no aplica en este equipo'}; else { delete p.s.opcional; ed.calificacion.componentes.forEach(c=>{ if(c.seccion===p.s._k) delete c.seccion; }); } edRerender(); }
+  if(k==='comp.sec'){ const c=ed.calificacion.componentes[+el.closest('[data-ci]').dataset.ci]; if(el.value) c.seccion=el.value; else delete c.seccion; }
+});
+$('#editor').addEventListener('click', async e=>{
+  if(e.target.id==='edSave2') return saveEditor();
+  if(e.target.id==='edCancel2') return cancelEditor();
+  const b=e.target.closest('[data-ea]'); if(!b) return;
+  const a=b.dataset.ea, p=edPath(b);
+  if(a==='secAdd'){ ed.secciones.push({_k:uid(), titulo:'', grupos:[{titulo:'', tareas:[{t:''}]}]}); edRerender(); const last=$$('#editor .edsec').pop(); last?.scrollIntoView({block:'center'}); last?.querySelector('input')?.focus(); return; }
+  if(a==='secUp') mv(ed.secciones,p.si,-1);
+  if(a==='secDown') mv(ed.secciones,p.si,1);
+  if(a==='secDel'){ if(!await confirmDlg('Eliminar sección',`¿Eliminar la sección <b>${esc(p.s.titulo||L(p.si))}</b> y sus tareas?`,'Eliminar')) return;
+    ed.calificacion.componentes.forEach(c=>{ if(c.seccion===p.s._k) delete c.seccion; }); ed.secciones.splice(p.si,1); }
+  if(a==='grpAdd') p.s.grupos.push({titulo:'', tareas:[{t:''}]});
+  if(a==='grpDel'){ if(p.g.tareas.some(t=>t.t.trim()) && !await confirmDlg('Eliminar grupo','¿Eliminar este grupo y sus tareas?','Eliminar')) return; p.s.grupos.splice(p.gi,1); }
+  if(a==='taskAdd'){ p.g.tareas.push({t:''}); edRerender(); const inp=$(`#editor [data-si="${p.si}"] [data-gi="${p.gi}"] .edtask:last-of-type input`); inp?.focus(); return; }
+  if(a==='taskUp') mv(p.g.tareas,p.ti,-1);
+  if(a==='taskDown') mv(p.g.tareas,p.ti,1);
+  if(a==='taskDel') p.g.tareas.splice(p.ti,1);
+  if(a==='compAdd') ed.calificacion.componentes.push({id:'c'+uid(), t:''});
+  if(a==='compDel') ed.calificacion.componentes.splice(+b.closest('[data-ci]').dataset.ci,1);
+  if(a==='firmaAdd') ed.firmas.push({id:'f'+uid(), t:''});
+  if(a==='firmaDel') ed.firmas.splice(+b.closest('[data-fi]').dataset.fi,1);
+  edRerender();
+});
+async function saveEditor(){
+  const t=clone(ed);
+  t.nombre=(t.nombre||'').trim();
+  t.secciones.forEach(s=>{ s.titulo=(s.titulo||'').trim(); s.grupos.forEach(g=>{ g.tareas=g.tareas.filter(x=>x.t.trim()).map(x=>x.m&&x.m.trim()?{t:x.t.trim(),m:x.m.trim()}:{t:x.t.trim()}); }); s.grupos=s.grupos.filter(g=>g.tareas.length); });
+  const emptySecs=t.secciones.filter(s=>!s.grupos.length);
+  t.secciones=t.secciones.filter(s=>s.grupos.length);
+  t.calificacion.componentes=t.calificacion.componentes.filter(c=>c.t.trim());
+  t.firmas=t.firmas.filter(f=>f.t.trim());
+  const errs=[];
+  if(!t.nombre) errs.push('Falta el nombre de la plantilla.');
+  if(!t.secciones.length) errs.push('Agrega al menos una sección con una tarea.');
+  if(t.secciones.some(s=>!s.titulo)) errs.push('Hay secciones sin título.');
+  if(!t.firmas.length) errs.push('Agrega al menos una firma.');
+  if(errs.length){ toast(errs[0]); return; }
+  if(emptySecs.length && !await confirmDlg('Secciones vacías',`Se descartarán ${emptySecs.length} sección(es) sin tareas. ¿Continuar?`,'Guardar')) return;
+  const map={}; t.secciones.forEach((s,i)=>{ map[s._k]=L(i); s.id=L(i); delete s._k; });
+  t.calificacion.componentes.forEach(c=>{ if(c.seccion && map[c.seccion]) c.seccion=map[c.seccion]; else delete c.seccion; });
+  t.tecnicos=[t.tecnicos[0]||'Técnico responsable', t.tecnicos[1]||'Técnico de apoyo'];
+  delete t.builtin; normalizeTpl(t); t.updated=Date.now();
+  await dbPut('tpl', t); ed=null; toast('Plantilla guardada'); showTemplates();
+}
+async function cancelEditor(){ if(await confirmDlg('Salir del editor','¿Salir sin guardar los cambios de la plantilla?','Salir')){ ed=null; showTemplates(); } }
+$('#edSave').onclick = saveEditor;
+$('#edCancel').onclick = cancelEditor;
+
+/* ============================================================
+   FORMULARIO DE INSPECCIÓN
    ============================================================ */
 async function openInsp(ins){
-  cur = migrate(ins); eqFilter = '';
+  cur = migrate(ins); X = ctxOf(cur); eqFilter = '';
   curPhotos = await dbPhotosOf(ins.id);
-  $('#home').classList.add('hidden'); $('#formView').classList.remove('hidden');
+  for(const p of curPhotos) if(p.row==='G'){ p.row='OBS'; await dbPut('photos',p); }   // versión anterior
+  show('formView');
   renderForm(); window.scrollTo(0,0);
   $('#saveState').textContent='Guardado ✓';
 }
-
 function eqCell(r, eq){
-  const c = cur.cells[r.key+'|'+eq] || {}; const s=effS(r.key,eq);
-  return `<div class="eq${isNoExh(r,eq)?' disabled':''}" data-eq="${eq}">
+  const c = cur.cells[r.key+'|'+eq] || {}; const s=effS(r.key,eq), off=r.opt && secOff(r.sec,eq);
+  return `<div class="eq${off?' disabled':''}" data-eq="${eq}">
     <div class="eq-l">${esc(eqName(eq))}</div>
     ${r.m?`<input class="val" data-f="v" placeholder="${esc(r.m)}" value="${esc(c.v)}" autocomplete="off">`:''}
     <div class="seg">${['ok','bad','na'].map(k=>`<button type="button" data-s="${k}" class="${s===k?'on':''}" aria-label="${esc(eqName(eq))} ${k==='ok'?'en buen estado':k==='bad'?'con falla':'no aplica'}">${SYM[k]}</button>`).join('')}</div>
@@ -566,14 +1066,13 @@ function eqCell(r, eq){
 }
 function taskHTML(r){
   return `<div class="task" id="t-${r.key}" data-key="${r.key}">
-    <div class="task-h"><span class="num">${r.n}</span><span class="txt">${esc(r.t)}</span><span class="flag">Falta obs./foto</span></div>
+    <div class="task-h"><span class="num">${r.n}</span><span class="txt">${esc(r.t)}</span><span class="flag"></span></div>
     <div class="eqs">${EQ.map(eq=>eqCell(r,eq)).join('')}</div>
-    <div class="obsrow"><textarea rows="1" data-f="obs" placeholder="Observación${r.key?' ('+r.key+')':''}">${esc(cur.obs[r.key]||'')}</textarea>
+    <div class="obsrow"><textarea rows="1" data-f="obs" placeholder="Observación (${r.key})">${esc(cur.obs[r.key]||'')}</textarea>
       <label class="cam" title="Agregar foto">📷<span class="cnt hidden"></span><input type="file" accept="image/*" multiple data-photo="${r.key}"></label></div>
     <div class="photos" data-photos="${r.key}"></div>
   </div>`;
 }
-
 function equiposHTML(){
   return `<h2 class="sec-title" id="s-Q">Equipos a inspeccionar <span class="eqcount">${cur.equipos.length}</span></h2>
   <div class="note">Agrega un equipo por cada unidad que revises en terreno. Cada equipo aparece como una columna en todas las tareas y en el PDF. Al eliminar un equipo se borran sus marcas y mediciones.</div>
@@ -588,7 +1087,7 @@ function equiposHTML(){
 }
 function applyFilter(){
   let st=$('#eqFilterCss'); if(!st){ st=document.createElement('style'); st.id='eqFilterCss'; document.head.appendChild(st); }
-  st.textContent = eqFilter && EQ.includes(eqFilter) ? `#form .eqs .eq:not([data-eq="${eqFilter}"]){display:none} #form .eqs{grid-template-columns:1fr}` : '';
+  st.textContent = eqFilter && EQ.includes(eqFilter) ? `#form .eqs .eq:not([data-eq="${eqFilter}"]){display:none} #form .eqs{grid-template-columns:1fr!important}` : '';
   const sel=$('#eqView'); if(sel) sel.value = EQ.includes(eqFilter) ? eqFilter : '';
 }
 function renderEqView(){
@@ -596,89 +1095,90 @@ function renderEqView(){
   applyFilter();
 }
 function renderForm(){
-  const h=cur.header; EQ=eqIds(cur);
-  const fld=(k,l,type='text',ro=false,now=false)=>`<div class="field"><label for="h-${k}">${l}</label>${now?'<div class="inrow">':''}<input id="h-${k}" type="${type}" data-h="${k}" value="${esc(h[k])}" ${ro?'readonly':''}>${now?`<button type="button" class="mini" data-now="${k}">Ahora</button></div>`:''}</div>`;
-  let html = brandHTML() + `
+  const h=cur.header; EQ=eqIds(cur); X=ctxOf(cur);
+  const fld=(k,l,type='text',now=false)=>`<div class="field"><label for="h-${k}">${esc(l)}</label>${now?'<div class="inrow">':''}<input id="h-${k}" type="${type}" data-h="${k}" value="${esc(h[k])}">${now?`<button type="button" class="mini" data-now="${k}">Ahora</button></div>`:''}</div>`;
+  let html = brandHTML('Check list de terreno · '+cur.tpl.nombre) + `
   <h2 class="sec-title" id="s-H">Datos de la inspección</h2>
-  <div class="note">En cada equipo marque <b>✓</b> (en buen estado), <b>✗</b> (con falla u observación) o <b>N/A</b> (no aplica). En las tareas de medición anote el valor y la unidad. Los ventiladores no se hacen girar: las pruebas de motores y VDF se realizan con las correas retiradas. <b>Toda tarea marcada con ✗ debe tener observación y registro fotográfico.</b></div>
+  ${cur.tpl.nota?`<div class="note">${esc(cur.tpl.nota)}</div>`:''}
   <div class="card"><div class="grid2">
     ${fld('fecha','Fecha','date')}${fld('cliente','Cliente y ubicación')}
     ${fld('trabajo','Tipo de trabajo')}${fld('ot','N° OT / referencia')}
-    ${fld('tecControl','Técnico Grupo de Control')}${fld('tecServicio','Técnico Grupo de Servicio Técnico')}
-    ${fld('horaIni','Hora de inicio','time',false,true)}${fld('horaFin','Hora de término','time',false,true)}
+    ${fld('tecControl',X.tecnicos[0])}${fld('tecServicio',X.tecnicos[1])}
+    ${fld('horaIni','Hora de inicio','time',true)}${fld('horaFin','Hora de término','time',true)}
   </div></div>` + equiposHTML();
 
-  SECTIONS.forEach(s=>{
-    html += `<h2 class="sec-title" id="s-${s.id}">${esc(s.title)}</h2>`;
-    if(s.exhaust && EQ.length){
-      html += `<div class="note">Si un equipo no tiene ventilador de extracción, actívalo aquí y toda su columna quedará como N/A.</div>
-      <div class="noexh">${EQ.map(eq=>`<label class="toggle"><input type="checkbox" data-noexh="${eq}" ${cur.noExh[eq]?'checked':''}> ${esc(eqName(eq))} sin ventilador de extracción</label>`).join('')}</div>`;
+  X.SECTIONS.forEach(s=>{
+    html += `<h2 class="sec-title" id="s-${s.id}">${s.id}. ${esc(s.titulo)}</h2>`;
+    if(s.opcional && EQ.length){
+      html += `<div class="note">Sección opcional: si un equipo no la tiene, actívalo aquí y toda su columna quedará como N/A.</div>
+      <div class="noexh">${EQ.map(eq=>`<label class="toggle"><input type="checkbox" data-nosec="${s.id}" data-eqn="${eq}" ${secOff(s.id,eq)?'checked':''}> ${esc(eqName(eq))} ${esc(s.opcional.etiqueta||'no aplica')}</label>`).join('')}</div>`;
     }
-    s.groups.forEach(g=>{
-      if(g.title) html += `<div class="sub-title">${esc(g.title)}</div>`;
-      g.rows.forEach(r=> html += taskHTML(ROW[s.id+r[0]]));
+    let n=0;
+    s.grupos.forEach(g=>{
+      if(g.titulo) html += `<div class="sub-title">${esc(g.titulo)}</div>`;
+      g.tareas.forEach(()=>{ n++; html += taskHTML(X.ROW[s.id+n]); });
     });
   });
 
-  html += `<h2 class="sec-title" id="s-F">F. Calificación final de los componentes</h2>
-  <div class="legend"><span><b>A</b> Apto: se mantiene en servicio sin intervenciones</span><span><b>AO</b> Apto con observaciones: requiere mantención o ajustes</span><span><b>NoA</b> No apto: reparación mayor o reemplazo</span></div>
-  <div class="ftable">${FINAL.map(c=>`<div class="task frow" id="f-${c.id}" data-final="${c.id}">
-    <div class="task-h"><span class="txt"><b>${esc(c.t)}</b></span></div>
-    <div class="eqs">${EQ.map(eq=>{ const v=effF(c.id,eq), dis=c.exhaust&&cur.noExh[eq];
-      return `<div class="eq${dis?' disabled':''}" data-eq="${eq}"><div class="eq-l">${esc(eqName(eq))}</div><div class="seg">${FOPTS.map(([k,l])=>`<button type="button" data-f="${k}" class="${v===k?'on':''}">${l}</button>`).join('')}</div></div>`; }).join('')}</div>
-    <div class="obsrow"><textarea rows="1" data-fobs="${c.id}" placeholder="Observación principal">${esc(cur.finalObs[c.id]||'')}</textarea></div>
-  </div>`).join('')}</div>
+  if(X.hasCal){
+    html += `<h2 class="sec-title" id="s-CAL">${X.calL}. ${esc(X.calTitulo)}</h2>
+    <div class="legend"><span><b>A</b> Apto: se mantiene en servicio sin intervenciones</span><span><b>AO</b> Apto con observaciones: requiere mantención o ajustes</span><span><b>NoA</b> No apto: reparación mayor o reemplazo</span></div>
+    <div class="ftable">${X.FINAL.map(c=>`<div class="task frow" id="f-${c.id}" data-final="${c.id}">
+      <div class="task-h"><span class="txt"><b>${esc(c.t)}</b></span></div>
+      <div class="eqs">${EQ.map(eq=>{ const v=effF(c.id,eq), dis=c.seccion&&secOff(c.seccion,eq);
+        return `<div class="eq${dis?' disabled':''}" data-eq="${eq}"><div class="eq-l">${esc(eqName(eq))}</div><div class="seg">${FOPTS.map(([k,l])=>`<button type="button" data-f="${k}" class="${v===k?'on':''}">${l}</button>`).join('')}</div></div>`; }).join('')}</div>
+      <div class="obsrow"><textarea rows="1" data-fobs="${c.id}" placeholder="Observación principal">${esc(cur.finalObs[c.id]||'')}</textarea></div>
+    </div>`).join('')}</div>`;
+  }
 
-  <h2 class="sec-title" id="s-G">G. Observaciones generales</h2>
-  <div class="task" data-key="G" id="t-G">
+  html += `<h2 class="sec-title" id="s-OBS">${X.obsL}. Observaciones generales</h2>
+  <div class="task" data-key="OBS" id="t-OBS">
     <div class="obsrow" style="margin-top:0"><textarea rows="4" data-f="obsGen" placeholder="Observaciones generales de la inspección">${esc(cur.obsGen||'')}</textarea>
-    <label class="cam" title="Agregar foto general">📷<span class="cnt hidden"></span><input type="file" accept="image/*" multiple data-photo="G"></label></div>
-    <div class="photos" data-photos="G"></div>
+    <label class="cam" title="Agregar foto general">📷<span class="cnt hidden"></span><input type="file" accept="image/*" multiple data-photo="OBS"></label></div>
+    <div class="photos" data-photos="OBS"></div>
   </div>
 
   <h2 class="sec-title" id="s-S">Firmas</h2>
   <label class="toggle" style="margin-bottom:12px"><input type="checkbox" id="penOnly"> Firmar solo con el lápiz (ignora la palma y los dedos)</label>
-  ${SIGS.map(s=>{ const f=cur.firmas[s.id]||{};
+  ${X.SIGS.map(s=>{ const f=cur.firmas[s.id]||{};
     return `<div class="sig" data-sig="${s.id}"><h3>${esc(s.t)}</h3>
       <div class="grid2"><div class="field"><label>Nombre</label><input data-sname="${s.id}" value="${esc(f.nombre)}" autocomplete="off"></div>
       <div class="field"><label>Fecha</label><input type="date" data-sdate="${s.id}" value="${esc(f.fecha)}"></div></div>
       <div class="padwrap${f.img?' signed':''}"><div class="baseline"></div><div class="hint">Firme aquí con el lápiz</div><canvas></canvas></div>
       <div class="sigbar"><span class="st${f.img?' okc':''}">${f.img?'Firmado el '+fmtTs(f.ts):'Sin firma'}</span><button type="button" class="btn" data-sclear="${s.id}">Borrar firma</button></div>
-    </div>`; }).join('')}
-  `;
+    </div>`; }).join('')}`;
   $('#form').innerHTML = html;
-  $('#ftitle').textContent = `${h.cliente} · ${fmtDate(h.fecha)}`;
+  $('#ftitle').textContent = `${h.cliente||'Sin cliente'} · ${fmtDate(h.fecha)}`;
   try{ $('#penOnly').checked = localStorage.getItem('penOnly')==='1'; }catch(e){}
-  ROWS.forEach(r=>{ renderPhotos(r.key); updateTask(r.key); }); renderPhotos('G');
-  $$('textarea').forEach(autoGrow);
-  SIGS.forEach(s=>setupPad(s.id));
+  X.ROWS.forEach(r=>{ renderPhotos(r.key); updateTask(r.key); }); renderPhotos('OBS');
+  $$('#form textarea').forEach(autoGrow);
+  for(const k in pads) delete pads[k];
+  X.SIGS.forEach(s=>setupPad(s.id));
   renderEqView();
   updateChips();
 }
-/* re-render manteniendo la posición en pantalla */
 function rerender(){ const y=window.scrollY; renderForm(); window.scrollTo(0,y); }
-
 function autoGrow(t){ t.style.height='auto'; t.style.height=Math.max(44,t.scrollHeight+2)+'px'; }
 
 function updateTask(k){
-  const r=ROW[k], el=$('#t-'+k); if(!el) return;
+  const el=$('#t-'+k); if(!el) return;
   const ss=EQ.map(eq=>effS(k,eq)); const hasBad=ss.includes('bad');
   const obsOk=!!(cur.obs[k]||'').trim(), photoOk=curPhotos.some(p=>p.row===k);
   const err = hasBad && (!obsOk || !photoOk);
   el.classList.toggle('has-err', err);
   el.querySelector('.flag').textContent = err ? (!obsOk && !photoOk ? 'Falta obs. y foto' : !obsOk ? 'Falta observación' : 'Falta foto') : '';
-  el.classList.toggle('complete', ss.every(Boolean) && !err);
+  el.classList.toggle('complete', ss.length>0 && ss.every(Boolean) && !err);
 }
-
 function updateChips(){
   if(!cur) return;
   const p=progress(cur).bySec;
-  const items=[['H','Datos',null],['Q','Equipos ('+cur.equipos.length+')',null]].concat(SECTIONS.map(s=>[s.id,s.id,p[s.id]]),[['F','F',p.F],['G','G',null],['S','Firmas',p.S]]);
-  $('#chips').innerHTML = items.map(([id,l,b])=>`<button type="button" class="chip${b&&b.d===b.t?' done':''}" data-go="s-${id}"><b>${l}</b>${b?`<span class="p">${b.d}/${b.t}</span>`:''}</button>`).join('');
+  const items=[['H','Datos',null],['Q','Equipos ('+cur.equipos.length+')',null]]
+    .concat(X.SECTIONS.map(s=>[s.id,s.id,p[s.id]]), X.hasCal?[['CAL',X.calL,p.CAL]]:[], [['OBS',X.obsL,null],['S','Firmas',p.S]]);
+  $('#chips').innerHTML = items.map(([id,l,b])=>`<button type="button" class="chip${b&&b.t&&b.d===b.t?' done':''}" data-go="s-${id}"><b>${l}</b>${b?`<span class="p">${b.d}/${b.t}</span>`:''}</button>`).join('');
 }
 $('#chips').addEventListener('click', e=>{ const b=e.target.closest('[data-go]'); if(b) document.getElementById(b.dataset.go)?.scrollIntoView({behavior:'smooth',block:'start'}); });
 
-/* ---- eventos del formulario (delegación) ---- */
+/* ---- eventos del formulario ---- */
 $('#form').addEventListener('click', e=>{
   const sb=e.target.closest('.seg button');
   if(sb){
@@ -699,12 +1199,41 @@ $('#form').addEventListener('click', e=>{
   const del=e.target.closest('.ph .del');
   if(del){ delPhoto(del.closest('.ph').dataset.pid); return; }
   if(e.target.closest('#btnAddEq')){ addEquipo(); return; }
-  const ed=e.target.closest('[data-eqdel]');
-  if(ed){ delEquipo(ed.dataset.eqdel); }
+  const ed_=e.target.closest('[data-eqdel]');
+  if(ed_){ delEquipo(ed_.dataset.eqdel); }
+});
+$('#form').addEventListener('input', e=>{
+  const t=e.target;
+  if(t.tagName==='TEXTAREA') autoGrow(t);
+  if(t.dataset.h){ cur.header[t.dataset.h]=t.value; if(['cliente','fecha'].includes(t.dataset.h)) $('#ftitle').textContent=`${cur.header.cliente||'Sin cliente'} · ${fmtDate(cur.header.fecha)}`; }
+  else if(t.dataset.f==='v'){ cell(t.closest('[data-key]').dataset.key, t.closest('.eq').dataset.eq).v=t.value; }
+  else if(t.dataset.f==='obs'){ const k=t.closest('[data-key]').dataset.key; cur.obs[k]=t.value; updateTask(k); }
+  else if(t.dataset.f==='obsGen'){ cur.obsGen=t.value; }
+  else if(t.dataset.fobs){ cur.finalObs[t.dataset.fobs]=t.value; }
+  else if(t.dataset.sname){ cur.firmas[t.dataset.sname].nombre=t.value; }
+  else if(t.dataset.sdate){ cur.firmas[t.dataset.sdate].fecha=t.value; }
+  else if(t.dataset.eqf){ const q=cur.equipos.find(x=>x.id===t.closest('[data-eqid]').dataset.eqid); q[t.dataset.eqf]=t.value; }
+  else return;
+  scheduleSave();
+});
+$('#form').addEventListener('change', async e=>{
+  const t=e.target;
+  if(t.dataset.eqf==='tag'){ rerender(); return; }
+  if(t.dataset.nosec){
+    const sid=t.dataset.nosec, eq=t.dataset.eqn;
+    if(t.checked){
+      const used=X.ROWS.some(r=>r.sec===sid && cur.cells[r.key+'|'+eq]?.s);
+      if(used && !await confirmDlg('Sección opcional', `El equipo <b>${esc(eqName(eq))}</b> ya tiene casillas marcadas en la sección ${sid}. Quedarán como N/A (los valores anotados se conservan). ¿Continuar?`)){ t.checked=false; return; }
+    }
+    cur.noSec[sid]=cur.noSec[sid]||{}; cur.noSec[sid][eq]=t.checked; scheduleSave(); rerender(); return;
+  }
+  if(t.dataset.photo){ const files=[...t.files]; t.value=''; for(const f of files) await addPhoto(f, t.dataset.photo); return; }
+  if(t.id==='penOnly'){ try{ localStorage.setItem('penOnly', t.checked?'1':'0'); }catch(err){} }
+  if(t.dataset.pf){ const p=curPhotos.find(x=>x.id===t.closest('.ph').dataset.pid); p.eq=t.value; await dbPut('photos',p); }
 });
 
 /* ---- equipos: agregar / eliminar ---- */
-async function addEquipo(){
+function addEquipo(){
   const e=newEquipo(); cur.equipos.push(e); scheduleSave(); rerender();
   const inp=$(`[data-eqid="${e.id}"] [data-eqf="tag"]`); if(inp){ inp.scrollIntoView({block:'center'}); inp.focus(); }
   toast('Equipo agregado');
@@ -720,41 +1249,12 @@ async function delEquipo(id){
   cur.equipos = cur.equipos.filter(e=>e.id!==id);
   for(const k of Object.keys(cur.cells)) if(k.endsWith('|'+id)) delete cur.cells[k];
   for(const k of Object.keys(cur.final)) if(k.endsWith('|'+id)) delete cur.final[k];
-  delete cur.noExh[id];
+  for(const s of Object.values(cur.noSec)) delete s[id];
   for(const p of curPhotos.filter(p=>p.eq===id)){ p.eq=''; await dbPut('photos',p); }
   if(eqFilter===id) eqFilter='';
   scheduleSave(); rerender(); toast(name+' eliminado');
 }
 $('#eqView').addEventListener('change', e=>{ eqFilter=e.target.value; applyFilter(); });
-$('#form').addEventListener('input', e=>{
-  const t=e.target;
-  if(t.tagName==='TEXTAREA') autoGrow(t);
-  if(t.dataset.h){ cur.header[t.dataset.h]=t.value; if(['cliente','fecha'].includes(t.dataset.h)) $('#ftitle').textContent=`${cur.header.cliente} · ${fmtDate(cur.header.fecha)}`; }
-  else if(t.dataset.f==='v'){ cell(t.closest('[data-key]').dataset.key, t.closest('.eq').dataset.eq).v=t.value; }
-  else if(t.dataset.f==='obs'){ const k=t.closest('[data-key]').dataset.key; cur.obs[k]=t.value; updateTask(k); }
-  else if(t.dataset.f==='obsGen'){ cur.obsGen=t.value; }
-  else if(t.dataset.fobs){ cur.finalObs[t.dataset.fobs]=t.value; }
-  else if(t.dataset.sname){ cur.firmas[t.dataset.sname].nombre=t.value; }
-  else if(t.dataset.sdate){ cur.firmas[t.dataset.sdate].fecha=t.value; }
-  else if(t.dataset.eqf){ const e=cur.equipos.find(x=>x.id===t.closest('[data-eqid]').dataset.eqid); e[t.dataset.eqf]=t.value; }
-  else return;
-  scheduleSave();
-});
-$('#form').addEventListener('change', async e=>{
-  const t=e.target;
-  if(t.dataset.eqf==='tag'){ rerender(); return; }
-  if(t.dataset.noexh){
-    const eq=t.dataset.noexh;
-    if(t.checked){
-      const used=ROWS.some(r=>r.exhaust && cur.cells[r.key+'|'+eq]?.s);
-      if(used && !await confirmDlg('Sin ventilador de extracción', `El equipo <b>${esc(eqName(eq))}</b> ya tiene casillas marcadas en la sección C. Quedarán como N/A (los valores anotados se conservan). ¿Continuar?`)){ t.checked=false; return; }
-    }
-    cur.noExh[eq]=t.checked; scheduleSave(); rerender(); return;
-  }
-  if(t.dataset.photo){ const files=[...t.files]; t.value=''; for(const f of files) await addPhoto(f, t.dataset.photo); return; }
-  if(t.id==='penOnly'){ try{ localStorage.setItem('penOnly', t.checked?'1':'0'); }catch(err){} }
-  if(t.dataset.pf){ const p=curPhotos.find(x=>x.id===t.closest('.ph').dataset.pid); p.eq=t.value; await dbPut('photos',p); }
-});
 
 /* ============================================================
    FOTOS
@@ -766,19 +1266,20 @@ async function addPhoto(file, key){
     const w=Math.round(img.naturalWidth*sc), h=Math.round(img.naturalHeight*sc);
     const c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d');
     x.drawImage(img,0,0,w,h);
-    const stamp=`${key} · ${cur.header.cliente} · ${fmtTs(Date.now())}`, fs=Math.max(14,Math.round(w/55));
+    const eq = EQ.includes(eqFilter) ? eqFilter : (EQ.length===1 ? EQ[0] : '');
+    const stamp=`${key==='OBS'?'Obs. general':key}${eq?' · '+eqName(eq):''} · ${cur.header.cliente||''} · ${fmtTs(Date.now())}`, fs=Math.max(14,Math.round(w/55));
     x.font=`bold ${fs}px Arial`; const tw=x.measureText(stamp).width;
     x.fillStyle='rgba(0,0,0,.55)'; x.fillRect(0,h-fs*1.7,tw+fs*1.2,fs*1.7);
     x.fillStyle='#fff'; x.fillText(stamp, fs*.6, h-fs*.5);
-    const p={id:uid(), inspId:cur.id, row:key, eq: EQ.includes(eqFilter) ? eqFilter : (EQ.length===1 ? EQ[0] : ''), data:c.toDataURL('image/jpeg',.8), ts:Date.now()};
-    await dbPut('photos',p); curPhotos.push(p); renderPhotos(key); if(ROW[key]) updateTask(key);
-    cur.updated=Date.now(); scheduleSave(); toast('Foto agregada a '+key);
+    const p={id:uid(), inspId:cur.id, row:key, eq, data:c.toDataURL('image/jpeg',.8), ts:Date.now()};
+    await dbPut('photos',p); curPhotos.push(p); renderPhotos(key); if(X.ROW[key]) updateTask(key);
+    scheduleSave(); toast('Foto agregada');
   }catch(e){ toast('No se pudo agregar la foto: '+e.message); }
 }
 async function delPhoto(id){
   if(!await confirmDlg('Eliminar foto','¿Eliminar esta foto?','Eliminar')) return;
   const p=curPhotos.find(x=>x.id===id); await dbDel('photos',id); curPhotos=curPhotos.filter(x=>x.id!==id);
-  renderPhotos(p.row); if(ROW[p.row]) updateTask(p.row); scheduleSave();
+  renderPhotos(p.row); if(X.ROW[p.row]) updateTask(p.row); scheduleSave();
 }
 function renderPhotos(key){
   const box=$(`[data-photos="${key}"]`); if(!box) return;
@@ -787,7 +1288,7 @@ function renderPhotos(key){
     <select data-pf="eq" aria-label="Equipo de la foto"><option value="">General</option>${EQ.map(eq=>`<option value="${eq}" ${p.eq===eq?'selected':''}>${esc(eqName(eq))}</option>`).join('')}</select></div>`).join('');
   const cnt=box.closest('.task')?.querySelector('.cam .cnt'); if(cnt){ cnt.textContent=ps.length; cnt.classList.toggle('hidden',!ps.length); }
 }
-function photoCaption(p){ const r=ROW[p.row], n=p.eq?eqName(p.eq):''; return `${p.row}${n?' · '+n:''} — ${r? r.t : 'Observaciones generales'}`; }
+function photoCaption(p){ const r=X.ROW[p.row], n=p.eq?eqName(p.eq):''; return `${p.row==='OBS'?X.obsL:p.row}${n?' · '+n:''} — ${r? r.t : 'Observaciones generales'}`; }
 
 /* ============================================================
    FIRMAS CON LÁPIZ (Pointer Events, sensible a la presión)
@@ -801,7 +1302,7 @@ function setupPad(id){
     if(!r.width) return;
     cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr); ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#0b1f6b'; ctx.fillStyle='#0b1f6b';
-    const src=cur.firmas[id].img; if(src){ const i=new Image(); i.onload=()=>ctx.drawImage(i,0,0,r.width,r.height); i.src=src; }
+    const src=cur?.firmas[id]?.img; if(src){ const i=new Image(); i.onload=()=>ctx.drawImage(i,0,0,r.width,r.height); i.src=src; }
   }
   const pos=e=>{ const r=cv.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top, p:(e.pointerType==='pen'||e.pressure>0&&e.pressure!==.5)? e.pressure : .5}; };
   const width=p=>1.2+p*3.2;
@@ -828,7 +1329,7 @@ function setupPad(id){
 }
 async function clearSig(id){
   if(!cur.firmas[id].img) return;
-  if(!await confirmDlg('Borrar firma','¿Borrar la firma de <b>'+esc(SIGS.find(s=>s.id===id).t)+'</b>?','Borrar')) return;
+  if(!await confirmDlg('Borrar firma','¿Borrar la firma de <b>'+esc(X.SIGS.find(s=>s.id===id).t)+'</b>?','Borrar')) return;
   Object.assign(cur.firmas[id],{img:'',ts:0}); pads[id].clear();
   const w=$(`[data-sig="${id}"]`); w.querySelector('.padwrap').classList.remove('signed');
   const st=w.querySelector('.st'); st.textContent='Sin firma'; st.classList.remove('okc'); scheduleSave();
@@ -840,7 +1341,7 @@ let rzT; window.addEventListener('resize', ()=>{ clearTimeout(rzT); rzT=setTimeo
    ============================================================ */
 function validate(){
   const out=[], h=cur.header;
-  [['fecha','Fecha'],['tecControl','Técnico Grupo de Control'],['tecServicio','Técnico Grupo de Servicio Técnico'],['horaIni','Hora de inicio'],['horaFin','Hora de término']]
+  [['fecha','Fecha'],['cliente','Cliente y ubicación'],['tecControl',X.tecnicos[0]],['horaIni','Hora de inicio'],['horaFin','Hora de término']]
     .forEach(([k,l])=>{ if(!String(h[k]||'').trim()) out.push({sev:'warn', msg:`Datos de la inspección: falta "${l}".`, go:'h-'+k}); });
   if(h.horaIni && h.horaFin && h.horaFin < h.horaIni) out.push({sev:'warn', msg:'La hora de término es anterior a la de inicio.', go:'h-horaFin'});
   if(!EQ.length) out.push({sev:'err', msg:'No hay equipos en la inspección. Agrega al menos uno.', go:'s-Q'});
@@ -848,7 +1349,7 @@ function validate(){
   if(dup.length) out.push({sev:'warn', msg:`Hay equipos con el mismo tag (${dup.join(', ')}). Usa un tag distinto para cada uno.`, go:'s-Q'});
   cur.equipos.forEach((e,i)=>{ if(!e.tag.trim()) out.push({sev:'warn', msg:`Equipo ${i+1}: falta el tag o N° de serie.`, go:'s-Q'}); });
   const nm = ids => ids.map(id=>eqName(id)).join(', ');
-  ROWS.forEach(r=>{
+  X.ROWS.forEach(r=>{
     const ss=EQ.map(eq=>effS(r.key,eq));
     if(ss.includes('bad')){
       const bad=nm(EQ.filter((eq,i)=>ss[i]==='bad'));
@@ -857,22 +1358,22 @@ function validate(){
     }
     if(r.m) EQ.forEach((eq,i)=>{ if((ss[i]==='ok'||ss[i]==='bad') && !(cur.cells[r.key+'|'+eq]?.v||'').trim()) out.push({sev:'warn', msg:`${r.key} · ${eqName(eq)}: medición marcada pero sin valor anotado.`, go:'t-'+r.key}); });
   });
-  SECTIONS.forEach(s=>{
-    const pend=[]; s.groups.forEach(g=>g.rows.forEach(rw=>{ const k=s.id+rw[0]; const m=EQ.filter(eq=>!effS(k,eq)); if(m.length) pend.push(k); }));
+  X.SECTIONS.forEach(s=>{
+    const pend=X.ROWS.filter(r=>r.sec===s.id && EQ.some(eq=>!effS(r.key,eq))).map(r=>r.key);
     if(pend.length) out.push({sev:'warn', msg:`Sección ${s.id}: ${pend.length} tarea(s) con casillas sin marcar (${pend.slice(0,6).join(', ')}${pend.length>6?'…':''}).`, go:'t-'+pend[0]});
   });
-  FINAL.forEach(c=>{
-    const m=EQ.filter(eq=>!effF(c.id,eq)); if(m.length) out.push({sev:'warn', msg:`Calificación final "${c.t}": falta en ${nm(m)}.`, go:'f-'+c.id});
+  X.FINAL.forEach(c=>{
+    const m=EQ.filter(eq=>!effF(c.id,eq)); if(m.length) out.push({sev:'warn', msg:`Calificación "${c.t}": falta en ${nm(m)}.`, go:'f-'+c.id});
     const need=EQ.filter(eq=>['AO','NoA'].includes(effF(c.id,eq))); if(need.length && !(cur.finalObs[c.id]||'').trim()) out.push({sev:'err', msg:`"${c.t}" calificado AO/NoA en ${nm(need)} sin observación principal.`, go:'f-'+c.id});
   });
-  SIGS.forEach(s=>{ const f=cur.firmas[s.id];
+  X.SIGS.forEach(s=>{ const f=cur.firmas[s.id];
     if(!f.nombre.trim()) out.push({sev:'warn', msg:`Firmas: falta el nombre de "${s.t}".`, go:'s-S'});
     if(!f.img) out.push({sev:'err', msg:`Firmas: falta la firma de "${s.t}".`, go:'s-S'}); });
   return out;
 }
 function showReview(){
   const v=validate(), e=v.filter(x=>x.sev==='err').length, w=v.length-e;
-  $('#reviewBody').innerHTML = !v.length ? '<div class="allok">✓ El formulario está completo: todas las tareas marcadas, observaciones y fotos de las fallas registradas, y las 3 firmas.</div>'
+  $('#reviewBody').innerHTML = !v.length ? `<div class="allok">✓ El formulario está completo: todas las tareas marcadas, observaciones y fotos de las fallas registradas, y ${X.SIGS.length} firma(s).</div>`
     : `<p style="margin-top:0"><b>${e}</b> error(es) y <b>${w}</b> advertencia(s). Toca un ítem para ir a él.</p>` +
       v.sort((a,b)=>(a.sev==='err'?0:1)-(b.sev==='err'?0:1)).map(x=>`<div class="issue ${x.sev}" data-goto="${x.go}"><span class="ic">${x.sev==='err'?'●':'▲'}</span><span>${esc(x.msg)}</span></div>`).join('');
   $('#dlgReview').showModal();
@@ -893,54 +1394,55 @@ function buildReport(){
   let o=`<table class="pbrand"><tr><td style="width:45mm"><img src="logo.png" alt="Efintel"></td>
     <td class="pt"><div class="b1">${EFINTEL.sistema}</div><div class="b2">${EFINTEL.documento}</div></td>
     <td class="pc">${EFINTEL.direccion}<br>${EFINTEL.email}<br>${EFINTEL.fono}<br>${EFINTEL.web}</td></tr></table>
-  <h1>ANEXO: CHECK LIST DE TERRENO</h1>
-  <div class="subt">Revisión de ventiladores de inyección y extracción, y del VDF</div>
+  <h1>CHECK LIST DE TERRENO</h1>
+  <div class="subt">${esc(cur.tpl.nombre)}</div>
   <h2>Datos de la inspección</h2>
   <table><tr><th style="width:22%">Fecha</th><td>${esc(fmtDate(h.fecha))}</td><th style="width:22%">Cliente y ubicación</th><td>${esc(h.cliente)}</td></tr>
   <tr><th>Tipo de trabajo</th><td>${esc(h.trabajo)}</td><th>N° OT / referencia</th><td>${esc(h.ot)}</td></tr>
-  <tr><th>Técnico Grupo de Control</th><td>${esc(h.tecControl)}</td><th>Técnico Grupo de Servicio Técnico</th><td>${esc(h.tecServicio)}</td></tr>
+  <tr><th>${esc(X.tecnicos[0])}</th><td>${esc(h.tecControl)}</td><th>${esc(X.tecnicos[1])}</th><td>${esc(h.tecServicio)}</td></tr>
   <tr><th>Hora de inicio</th><td>${esc(h.horaIni)}</td><th>Hora de término</th><td>${esc(h.horaFin)}</td></tr></table>
   <h2>Equipos inspeccionados (${cur.equipos.length})</h2>
   <table><thead><tr><th>N°</th><th>Tag / N° de serie</th><th>Marca / modelo / capacidad</th><th>Ubicación</th></tr></thead><tbody>
   ${cur.equipos.map((e,i)=>`<tr><td class="n">${i+1}</td><td><b>${esc(eqName(e.id))}</b></td><td>${esc(e.desc)}</td><td>${esc(e.ubic)}</td></tr>`).join('') || '<tr><td colspan="4">Sin equipos</td></tr>'}
   </tbody></table>
   <div class="legend-p">✓ en buen estado · ✗ con falla u observación · N/A no aplica</div>`;
-  /* hasta 4 equipos por tabla para que el PDF siga legible */
   const PER=4, chunks=[]; for(let i=0;i<EQ.length;i+=PER) chunks.push(EQ.slice(i,i+PER)); if(!chunks.length) chunks.push([]);
-  const part = (ci) => { if(chunks.length<2) return ''; const a=ci*PER+1, b=ci*PER+chunks[ci].length; return a===b ? ` — equipo ${a} de ${EQ.length}` : ` — equipos ${a} a ${b} de ${EQ.length}`; };
-  SECTIONS.forEach(s=>{
+  const part = ci => { if(chunks.length<2) return ''; const a=ci*PER+1, b=ci*PER+chunks[ci].length; return a===b ? ` — equipo ${a} de ${EQ.length}` : ` — equipos ${a} a ${b} de ${EQ.length}`; };
+  X.SECTIONS.forEach(s=>{
     chunks.forEach((E,ci)=>{
-      const noX=E.filter(eq=>cur.noExh[eq]);
-      o+=`<h2>${esc(s.title)}${part(ci)}${s.exhaust&&noX.length?` (sin extractor: ${esc(noX.map(eq=>eqName(eq)).join(', '))})`:''}</h2>
+      const off=s.opcional ? E.filter(eq=>secOff(s.id,eq)) : [];
+      o+=`<h2>${s.id}. ${esc(s.titulo)}${part(ci)}${off.length?` (${esc(s.opcional.etiqueta||'no aplica')}: ${esc(off.map(eq=>eqName(eq)).join(', '))})`:''}</h2>
       <table><thead><tr><th>N°</th><th>Tarea</th>${E.map(eq=>`<th>${esc(eqName(eq))}</th>`).join('')}<th style="width:28%">Observación</th></tr></thead><tbody>`;
-      s.groups.forEach(g=>{
-        if(g.title) o+=`<tr class="grp"><td colspan="${E.length+3}">${esc(g.title)}</td></tr>`;
-        g.rows.forEach(rw=>{ const k=s.id+rw[0]; const np=curPhotos.filter(p=>p.row===k).length;
-          o+=`<tr><td class="n">${rw[0]}</td><td>${esc(rw[1])}</td>${E.map(eq=>`<td class="c">${sCell(k,eq)}</td>`).join('')}<td>${ci===0?esc(cur.obs[k]||'')+(np?` <i>(${np} foto${np>1?'s':''})</i>`:''):''}</td></tr>`; });
+      let n=0;
+      s.grupos.forEach(g=>{
+        if(g.titulo) o+=`<tr class="grp"><td colspan="${E.length+3}">${esc(g.titulo)}</td></tr>`;
+        g.tareas.forEach(tk_=>{ n++; const k=s.id+n; const np=curPhotos.filter(p=>p.row===k).length;
+          o+=`<tr><td class="n">${n}</td><td>${esc(tk_.t)}</td>${E.map(eq=>`<td class="c">${sCell(k,eq)}</td>`).join('')}<td>${ci===0?esc(cur.obs[k]||'')+(np?` <i>(${np} foto${np>1?'s':''})</i>`:''):''}</td></tr>`; });
       });
       o+='</tbody></table>';
     });
   });
-  o+=`<h2>F. Calificación final de los componentes</h2>
-  <div class="legend-p">A: Apto · AO: Apto con observaciones · NoA: No apto</div>`;
-  chunks.forEach((E,ci)=>{
-    o+=`<table class="avoid" style="margin-bottom:2mm"><thead><tr><th>Componente${part(ci)}</th>${E.map(eq=>`<th>${esc(eqName(eq))}</th>`).join('')}<th style="width:32%">Observación principal</th></tr></thead><tbody>
-    ${FINAL.map(c=>`<tr><td>${esc(c.t)}</td>${E.map(eq=>{const v=effF(c.id,eq);return `<td class="c"><b>${v==='NA'?'N/A':esc(v)}</b></td>`;}).join('')}<td>${ci===0?esc(cur.finalObs[c.id]||''):''}</td></tr>`).join('')}
-    </tbody></table>`;
-  });
-  o+=`
-  <div class="avoid"><h2>G. Observaciones generales</h2><table><tr><td style="height:18mm;white-space:pre-wrap">${esc(cur.obsGen||'')}</td></tr></table></div>
+  if(X.hasCal){
+    o+=`<h2>${X.calL}. ${esc(X.calTitulo)}</h2><div class="legend-p">A: Apto · AO: Apto con observaciones · NoA: No apto</div>`;
+    chunks.forEach((E,ci)=>{
+      o+=`<table class="avoid" style="margin-bottom:2mm"><thead><tr><th>Componente${part(ci)}</th>${E.map(eq=>`<th>${esc(eqName(eq))}</th>`).join('')}<th style="width:32%">Observación principal</th></tr></thead><tbody>
+      ${X.FINAL.map(c=>`<tr><td>${esc(c.t)}</td>${E.map(eq=>{const v=effF(c.id,eq);return `<td class="c"><b>${v==='NA'?'N/A':esc(v)}</b></td>`;}).join('')}<td>${ci===0?esc(cur.finalObs[c.id]||''):''}</td></tr>`).join('')}
+      </tbody></table>`;
+    });
+  }
+  o+=`<div class="avoid"><h2>${X.obsL}. Observaciones generales</h2><table><tr><td style="height:18mm;white-space:pre-wrap">${esc(cur.obsGen||'')}</td></tr></table></div>
   <div class="avoid"><h2>Firmas</h2><table><thead><tr><th>Cargo</th><th>Nombre</th><th>Firma</th><th>Fecha</th></tr></thead><tbody>
-  ${SIGS.map(s=>{const f=cur.firmas[s.id]; return `<tr><td>${esc(s.t)}</td><td>${esc(f.nombre)}</td><td style="height:22mm">${f.img?`<img class="sigimg" src="${f.img}" alt="Firma">`:''}</td><td>${esc(fmtDate(f.fecha))}${f.ts?`<br><small>${fmtTs(f.ts)}</small>`:''}</td></tr>`;}).join('')}
+  ${X.SIGS.map(s=>{const f=cur.firmas[s.id]; return `<tr><td>${esc(s.t)}</td><td>${esc(f.nombre)}</td><td style="height:22mm">${f.img?`<img class="sigimg" src="${f.img}" alt="Firma">`:''}</td><td>${esc(fmtDate(f.fecha))}${f.ts?`<br><small>${fmtTs(f.ts)}</small>`:''}</td></tr>`;}).join('')}
   </tbody></table></div>`;
-  const ordered=[...curPhotos].sort((a,b)=>{ const ia=ROWS.findIndex(r=>r.key===a.row), ib=ROWS.findIndex(r=>r.key===b.row); return (ia<0?999:ia)-(ib<0?999:ib) || a.ts-b.ts; });
-  if(ordered.length) o+=`<h2 style="page-break-before:always">Registro fotográfico</h2><div class="pgrid">${ordered.map(p=>`<figure><img src="${p.data}" alt=""><figcaption><b>${esc(p.row)}${p.eq&&eqName(p.eq)?' · '+esc(eqName(p.eq)):''}</b> — ${esc(ROW[p.row]?.t||'Observaciones generales')}</figcaption></figure>`).join('')}</div>`;
-  o+=`<div class="foot">Generado el ${fmtTs(Date.now())} · ID ${esc(cur.id)}</div>`;
+  const idx=k=>{ const i=X.ROWS.findIndex(r=>r.key===k); return i<0?9999:i; };
+  const ordered=[...curPhotos].sort((a,b)=>idx(a.row)-idx(b.row) || a.ts-b.ts);
+  if(ordered.length) o+=`<h2 style="page-break-before:always">Registro fotográfico</h2><div class="pgrid">${ordered.map(p=>`<figure><img src="${p.data}" alt=""><figcaption><b>${esc(p.row==='OBS'?X.obsL:p.row)}${p.eq&&eqName(p.eq)?' · '+esc(eqName(p.eq)):''}</b> — ${esc(X.ROW[p.row]?.t||'Observaciones generales')}</figcaption></figure>`).join('')}</div>`;
+  o+=`<div class="foot">Plantilla: ${esc(cur.tpl.nombre)} · Generado el ${fmtTs(Date.now())} · ID ${esc(cur.id)}</div>`;
   $('#print').innerHTML=o;
 }
 async function makePdf(){
   await saveNow(); buildReport();
-  const old=document.title; document.title=`CheckList_${(cur.header.cliente||'HVAC').replace(/\s+/g,'')}_${cur.header.fecha}`;
+  const old=document.title; document.title=`CheckList_${slug(cur.header.cliente)}_${cur.header.fecha}`;
   await Promise.all($$('#print img').map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r;})));
   setTimeout(()=>{ window.print(); setTimeout(()=>document.title=old, 1000); }, 100);
 }
@@ -953,10 +1455,7 @@ $('#btnPdfAnyway').onclick = ()=>{ $('#dlgReview').close(); makePdf(); };
 async function exportJson(ins){
   if(cur && ins.id===cur.id) await saveNow();
   const photos=await dbPhotosOf(ins.id);
-  const blob=new Blob([JSON.stringify({format:'efintel-checklist-voyager', version:1, exported:Date.now(), insp:ins, photos})],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download=`Respaldo_${ins.header.cliente.replace(/\s+/g,'')}_${ins.header.fecha}_${ins.id.slice(-4)}.json`;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  download({format:'efintel-checklist-voyager', version:2, exported:Date.now(), insp:ins, photos}, `Respaldo_${slug(ins.header.cliente)}_${ins.header.fecha}_${ins.id.slice(-4)}.json`);
   toast('Respaldo descargado');
 }
 $('#btnJson').onclick = ()=>exportJson(cur);
@@ -964,11 +1463,12 @@ $('#importFile').addEventListener('change', async e=>{
   const f=e.target.files[0]; e.target.value=''; if(!f) return;
   try{
     const d=JSON.parse(await f.text());
+    if(d.format==='efintel-checklist-plantilla') throw new Error('Este archivo es una plantilla: impórtalo en la pantalla Plantillas.');
     if(d.format!=='efintel-checklist-voyager' || !d.insp?.id) throw new Error('El archivo no es un respaldo de este formulario.');
     const exists=(await dbAll('insp')).some(x=>x.id===d.insp.id);
     if(exists && !await confirmDlg('Importar respaldo','Esta inspección ya existe en la tablet. ¿Reemplazarla con la versión del respaldo?','Reemplazar')) return;
     if(exists) for(const p of await dbPhotosOf(d.insp.id)) await dbDel('photos',p.id);
-    await dbPut('insp', d.insp); for(const p of (d.photos||[])) await dbPut('photos', p);
+    await dbPut('insp', migrate(d.insp)); for(const p of (d.photos||[])) await dbPut('photos', p);
     toast('Respaldo importado'); showHome();
   }catch(err){ toast('Error al importar: '+err.message); }
 });
@@ -1003,7 +1503,7 @@ if('serviceWorker' in navigator && location.protocol!=='file:'){
       const offerUpdate = w => {
         if(document.querySelector('.upd')) return;
         const b=document.createElement('div'); b.className='upd';
-        b.innerHTML='<span>Hay una versión nueva del formulario. Tus inspecciones se conservan.</span><button class="btn primary">Actualizar</button>';
+        b.innerHTML='<span>Hay una versión nueva del formulario. Tus inspecciones y plantillas se conservan.</span><button class="btn primary">Actualizar</button>';
         b.querySelector('button').onclick=async ()=>{ if(saveT) await saveNow(); w.postMessage('skipWaiting'); };
         document.body.appendChild(b);
       };
