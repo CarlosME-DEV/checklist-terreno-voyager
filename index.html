@@ -129,12 +129,27 @@ input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid c
 /* firmas */
 .sig{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
 .sig h3{margin:0 0 10px;font-size:16px}
-.padwrap{position:relative;margin-top:10px;border:2px dashed #9fb1bf;border-radius:12px;background:#fff;height:210px;touch-action:none}
-.padwrap.signed{border-style:solid;border-color:var(--ok)}
-.padwrap canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;border-radius:10px}
-.padwrap .hint{position:absolute;left:0;right:0;bottom:44px;text-align:center;color:#a8b5bf;pointer-events:none;font-size:14px}
-.padwrap .baseline{position:absolute;left:24px;right:24px;bottom:38px;border-bottom:1px solid #c5d0d8;pointer-events:none}
-.padwrap.signed .hint{display:none}
+/* firma en la página: solo vista previa (no captura toques, el dedo puede hacer scroll) */
+.sigbox{margin-top:10px;border:2px dashed #9fb1bf;border-radius:12px;background:#f7f9fb;height:150px;display:grid;place-items:center;overflow:hidden}
+.sigbox.signed{border-style:solid;border-color:var(--ok);background:#fff}
+.sigbox img{max-width:100%;max-height:100%;display:block}
+.sigbox .hint{color:#7f8f9b;font-size:14px;text-align:center;padding:0 16px}
+.btn.sign{background:var(--brand);border-color:var(--brand);color:#fff}
+/* ventana de firma */
+#dlgSign{max-width:100vw;width:100vw;height:100dvh;max-height:100dvh;margin:0;border-radius:0}
+#dlgSign[open]{display:flex;flex-direction:column}
+#dlgSign .dh{flex:none}
+#dlgSign .sopts{flex:none;display:flex;gap:10px;align-items:end;flex-wrap:wrap;padding:10px 16px}
+#dlgSign .sopts .field{flex:1;min-width:200px}
+.signarea{flex:1 1 auto;position:relative;margin:0 16px;border:2px solid #0f3d5e;border-radius:14px;background:#fff;touch-action:none;min-height:220px;max-height:min(440px,62dvh)}
+#dlgSign .df{margin-top:auto}
+.signarea canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;border-radius:12px}
+.signarea .baseline{position:absolute;left:5%;right:5%;bottom:22%;border-bottom:2px solid #c5d0d8;pointer-events:none}
+.signarea .x{position:absolute;left:5%;bottom:calc(22% + 6px);font-size:22px;color:#9fb1bf;pointer-events:none}
+.signarea .hint{position:absolute;left:0;right:0;top:14px;text-align:center;color:#9fb1bf;pointer-events:none;font-size:15px}
+.signarea.drawn .hint{display:none}
+#dlgSign .df{flex:none;padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+#signOk[disabled]{opacity:.45}
 .sigbar{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
 .sigbar .st{flex:1;font-size:13px;color:var(--muted)}
 .sigbar .st.okc{color:var(--ok);font-weight:600}
@@ -308,6 +323,15 @@ dialog::backdrop{background:rgba(10,25,40,.55)}
   <div class="dh"><h2>¿Qué tipo de levantamiento?</h2><button class="btn" data-close>Cerrar</button></div>
   <div class="db" id="tplPick"></div>
   <div class="df"><button class="btn" id="goTpls">Administrar plantillas</button></div>
+</dialog>
+<dialog id="dlgSign">
+  <div class="dh"><h2 id="signTitle">Firma</h2></div>
+  <div class="sopts">
+    <div class="field"><label for="signName">Nombre de quien firma</label><input id="signName" autocomplete="off"></div>
+    <label class="toggle"><input type="checkbox" id="penOnly"> Solo lápiz (ignora dedos y palma)</label>
+  </div>
+  <div class="signarea" id="signArea"><div class="hint">Firme dentro del recuadro</div><span class="x">✕</span><div class="baseline"></div><canvas id="signCanvas"></canvas></div>
+  <div class="df"><button class="btn" id="signClear">Limpiar</button><span style="flex:1"></span><button class="btn" id="signCancel">Cancelar</button><button class="btn primary" id="signOk" disabled>Aceptar firma</button></div>
 </dialog>
 <dialog id="dlgReview">
   <div class="dh"><h2>Revisión del formulario</h2><button class="btn" data-close>Cerrar</button></div>
@@ -1139,21 +1163,12 @@ function renderForm(){
   </div>
 
   <h2 class="sec-title" id="s-S">Firmas</h2>
-  <label class="toggle" style="margin-bottom:12px"><input type="checkbox" id="penOnly"> Firmar solo con el lápiz (ignora la palma y los dedos)</label>
-  ${X.SIGS.map(s=>{ const f=cur.firmas[s.id]||{};
-    return `<div class="sig" data-sig="${s.id}"><h3>${esc(s.t)}</h3>
-      <div class="grid2"><div class="field"><label>Nombre</label><input data-sname="${s.id}" value="${esc(f.nombre)}" autocomplete="off"></div>
-      <div class="field"><label>Fecha</label><input type="date" data-sdate="${s.id}" value="${esc(f.fecha)}"></div></div>
-      <div class="padwrap${f.img?' signed':''}"><div class="baseline"></div><div class="hint">Firme aquí con el lápiz</div><canvas></canvas></div>
-      <div class="sigbar"><span class="st${f.img?' okc':''}">${f.img?'Firmado el '+fmtTs(f.ts):'Sin firma'}</span><button type="button" class="btn" data-sclear="${s.id}">Borrar firma</button></div>
-    </div>`; }).join('')}`;
+  <div class="note">Para firmar toca <b>Firmar</b>: se abre un recuadro grande y la firma solo se guarda al tocar <b>Aceptar firma</b>. Los recuadros de esta página están bloqueados, así que pasar el dedo para desplazarte no los raya.</div>
+  ${X.SIGS.map(s=>sigHTML(s)).join('')}`;
   $('#form').innerHTML = html;
   $('#ftitle').textContent = `${h.cliente||'Sin cliente'} · ${fmtDate(h.fecha)}`;
-  try{ $('#penOnly').checked = localStorage.getItem('penOnly')==='1'; }catch(e){}
   X.ROWS.forEach(r=>{ renderPhotos(r.key); updateTask(r.key); }); renderPhotos('OBS');
   $$('#form textarea').forEach(autoGrow);
-  for(const k in pads) delete pads[k];
-  X.SIGS.forEach(s=>setupPad(s.id));
   renderEqView();
   updateChips();
 }
@@ -1194,6 +1209,8 @@ $('#form').addEventListener('click', e=>{
   if(nb){ const k=nb.dataset.now; cur.header[k]=nowHM(); $('#h-'+k).value=cur.header[k]; scheduleSave(); return; }
   const cl=e.target.closest('[data-sclear]');
   if(cl){ clearSig(cl.dataset.sclear); return; }
+  const sg=e.target.closest('[data-sign]');
+  if(sg){ openSign(sg.dataset.sign); return; }
   const img=e.target.closest('.ph img');
   if(img){ const p=curPhotos.find(x=>x.id===img.closest('.ph').dataset.pid); $('#viewerImg').src=p.data; $('#viewerCap').textContent=photoCaption(p); $('#viewer').showModal(); return; }
   const del=e.target.closest('.ph .del');
@@ -1228,7 +1245,6 @@ $('#form').addEventListener('change', async e=>{
     cur.noSec[sid]=cur.noSec[sid]||{}; cur.noSec[sid][eq]=t.checked; scheduleSave(); rerender(); return;
   }
   if(t.dataset.photo){ const files=[...t.files]; t.value=''; for(const f of files) await addPhoto(f, t.dataset.photo); return; }
-  if(t.id==='penOnly'){ try{ localStorage.setItem('penOnly', t.checked?'1':'0'); }catch(err){} }
   if(t.dataset.pf){ const p=curPhotos.find(x=>x.id===t.closest('.ph').dataset.pid); p.eq=t.value; await dbPut('photos',p); }
 });
 
@@ -1293,48 +1309,90 @@ function photoCaption(p){ const r=X.ROW[p.row], n=p.eq?eqName(p.eq):''; return `
 /* ============================================================
    FIRMAS CON LÁPIZ (Pointer Events, sensible a la presión)
    ============================================================ */
-const pads = {};
-function setupPad(id){
-  const wrap=$(`[data-sig="${id}"] .padwrap`), cv=wrap.querySelector('canvas'), ctx=cv.getContext('2d');
-  let drawing=false, last=null, dirty=false, pid=null;
-  function size(){
-    const r=cv.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
-    if(!r.width) return;
-    cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr); ctx.setTransform(dpr,0,0,dpr,0,0);
-    ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#0b1f6b'; ctx.fillStyle='#0b1f6b';
-    const src=cur?.firmas[id]?.img; if(src){ const i=new Image(); i.onload=()=>ctx.drawImage(i,0,0,r.width,r.height); i.src=src; }
-  }
-  const pos=e=>{ const r=cv.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top, p:(e.pointerType==='pen'||e.pressure>0&&e.pressure!==.5)? e.pressure : .5}; };
-  const width=p=>1.2+p*3.2;
-  cv.addEventListener('pointerdown', e=>{
-    if($('#penOnly')?.checked && e.pointerType!=='pen') return;
-    e.preventDefault(); drawing=true; pid=e.pointerId; last=pos(e); try{ cv.setPointerCapture(pid); }catch(err){}
-    ctx.beginPath(); ctx.arc(last.x,last.y,width(last.p)/2,0,Math.PI*2); ctx.fill(); dirty=true;
-  });
-  cv.addEventListener('pointermove', e=>{
-    if(!drawing || e.pointerId!==pid) return; e.preventDefault();
-    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
-    for(const ev of (evs.length?evs:[e])){ const q=pos(ev); ctx.lineWidth=width((last.p+q.p)/2); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(q.x,q.y); ctx.stroke(); last=q; }
-  });
-  const end=e=>{ if(!drawing || e.pointerId!==pid) return; drawing=false; pid=null; if(dirty) commit(); };
-  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
-  function commit(){
-    const f=cur.firmas[id]; f.img=cv.toDataURL('image/png'); f.ts=Date.now();
-    if(!f.fecha){ f.fecha=todayISO(); $(`[data-sdate="${id}"]`).value=f.fecha; }
-    wrap.classList.add('signed'); const st=$(`[data-sig="${id}"] .st`); st.textContent='Firmado el '+fmtTs(f.ts); st.classList.add('okc');
-    scheduleSave();
-  }
-  pads[id]={size, clear(){ ctx.clearRect(0,0,cv.width,cv.height); dirty=false; }};
-  size();
+/* En la página la firma es solo una imagen (no recibe trazos). Se firma en una
+   ventana aparte y se guarda únicamente al tocar «Aceptar firma». */
+function sigHTML(s){
+  const f=cur.firmas[s.id]||{};
+  return `<div class="sig" data-sig="${s.id}"><h3>${esc(s.t)}</h3>
+    <div class="grid2"><div class="field"><label>Nombre</label><input data-sname="${s.id}" value="${esc(f.nombre)}" autocomplete="off"></div>
+    <div class="field"><label>Fecha</label><input type="date" data-sdate="${s.id}" value="${esc(f.fecha)}"></div></div>
+    <div class="sigbox${f.img?' signed':''}">${f.img?`<img src="${f.img}" alt="Firma de ${esc(s.t)}">`:'<span class="hint">Sin firma. Toca «Firmar» para abrir el recuadro de firma.</span>'}</div>
+    <div class="sigbar"><span class="st${f.img?' okc':''}">${f.img?'Firmado el '+fmtTs(f.ts):'Sin firma'}</span>
+      ${f.img?`<button type="button" class="btn danger" data-sclear="${s.id}">Borrar firma</button>`:''}
+      <button type="button" class="btn sign" data-sign="${s.id}">✍ ${f.img?'Volver a firmar':'Firmar'}</button></div>
+  </div>`;
 }
+function refreshSig(id){ const el=$(`[data-sig="${id}"]`); if(el) el.outerHTML=sigHTML(X.SIGS.find(s=>s.id===id)); }
+
+const MIN_INK = 60;   // largo mínimo del trazo (px) para aceptar una firma: descarta roces
+const SP = {id:null, strokes:[], cur:null, ink:0, pid:null};
+const signCv=$('#signCanvas'), signCtx=signCv.getContext('2d');
+const penW = p => 1.4+p*3.4;
+function signSize(){
+  const r=signCv.getBoundingClientRect(), dpr=window.devicePixelRatio||1; if(!r.width) return;
+  signCv.width=Math.round(r.width*dpr); signCv.height=Math.round(r.height*dpr); signCtx.setTransform(dpr,0,0,dpr,0,0);
+  signRedraw();
+}
+function signRedraw(){
+  const r=signCv.getBoundingClientRect(); signCtx.clearRect(0,0,r.width,r.height);
+  signCtx.lineCap='round'; signCtx.lineJoin='round'; signCtx.strokeStyle=signCtx.fillStyle='#0b1f6b';
+  for(const s of SP.strokes) drawStroke(s);
+}
+function drawStroke(s){
+  const p=s[0]; signCtx.beginPath(); signCtx.arc(p.x,p.y,penW(p.p)/2,0,Math.PI*2); signCtx.fill();
+  for(let i=1;i<s.length;i++){ const a=s[i-1], b=s[i]; signCtx.lineWidth=penW((a.p+b.p)/2); signCtx.beginPath(); signCtx.moveTo(a.x,a.y); signCtx.lineTo(b.x,b.y); signCtx.stroke(); }
+}
+function signState(){ $('#signOk').disabled = SP.ink < MIN_INK; $('#signArea').classList.toggle('drawn', SP.strokes.length>0); }
+const signPos=e=>{ const r=signCv.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top, p:(e.pointerType==='pen'||e.pressure>0&&e.pressure!==.5)? e.pressure : .5}; };
+signCv.addEventListener('pointerdown', e=>{
+  if($('#penOnly').checked && e.pointerType!=='pen') return;
+  if(SP.pid!==null) return;                                   // un solo dedo/lápiz a la vez
+  e.preventDefault(); SP.pid=e.pointerId; try{ signCv.setPointerCapture(e.pointerId); }catch(err){}
+  SP.cur=[signPos(e)]; SP.strokes.push(SP.cur); drawStroke(SP.cur); signState();
+});
+signCv.addEventListener('pointermove', e=>{
+  if(e.pointerId!==SP.pid) return; e.preventDefault();
+  const evs=e.getCoalescedEvents?e.getCoalescedEvents():[e];
+  for(const ev of (evs.length?evs:[e])){ const a=SP.cur[SP.cur.length-1], b=signPos(ev); SP.cur.push(b); SP.ink+=Math.hypot(b.x-a.x,b.y-a.y);
+    signCtx.lineWidth=penW((a.p+b.p)/2); signCtx.beginPath(); signCtx.moveTo(a.x,a.y); signCtx.lineTo(b.x,b.y); signCtx.stroke(); }
+  signState();
+});
+const signEnd=e=>{ if(e.pointerId!==SP.pid) return; SP.pid=null; SP.cur=null; signState(); };
+signCv.addEventListener('pointerup', signEnd); signCv.addEventListener('pointercancel', signEnd);
+
+async function openSign(id){
+  const s=X.SIGS.find(x=>x.id===id), f=cur.firmas[id];
+  if(f.img && !await confirmDlg('Volver a firmar',`La firma actual de <b>${esc(s.t)}</b> se reemplazará cuando aceptes la nueva. ¿Continuar?`,'Continuar')) return;
+  Object.assign(SP,{id, strokes:[], cur:null, ink:0, pid:null});
+  $('#signTitle').textContent='Firma: '+s.t; $('#signName').value=f.nombre||'';
+  try{ $('#penOnly').checked = localStorage.getItem('penOnly')==='1'; }catch(e){}
+  $('#dlgSign').showModal(); requestAnimationFrame(()=>{ signSize(); signState(); });
+}
+function signExport(){
+  /* recorta al área firmada para que se vea bien en la página y en el PDF */
+  const pts=SP.strokes.flat(); const pad=12, dpr=window.devicePixelRatio||1;
+  const x0=Math.max(0,Math.min(...pts.map(p=>p.x))-pad), y0=Math.max(0,Math.min(...pts.map(p=>p.y))-pad);
+  const x1=Math.max(...pts.map(p=>p.x))+pad, y1=Math.max(...pts.map(p=>p.y))+pad;
+  const c=document.createElement('canvas'); c.width=Math.round((x1-x0)*dpr); c.height=Math.round((y1-y0)*dpr);
+  c.getContext('2d').drawImage(signCv, x0*dpr, y0*dpr, c.width, c.height, 0, 0, c.width, c.height);
+  return c.toDataURL('image/png');
+}
+$('#signClear').onclick = ()=>{ SP.strokes=[]; SP.ink=0; SP.cur=null; SP.pid=null; signRedraw(); signState(); };
+$('#signCancel').onclick = ()=>{ $('#dlgSign').close(); };
+$('#dlgSign').addEventListener('cancel', e=>{ if(SP.strokes.length){ e.preventDefault(); } });   // evita cerrar por accidente con «atrás»
+$('#signOk').onclick = ()=>{
+  if(SP.ink < MIN_INK){ toast('La firma es muy corta. Firma dentro del recuadro.'); return; }
+  const f=cur.firmas[SP.id]; f.img=signExport(); f.ts=Date.now(); f.nombre=$('#signName').value.trim() || f.nombre;
+  if(!f.fecha) f.fecha=todayISO();
+  $('#dlgSign').close(); refreshSig(SP.id); scheduleSave(); toast('Firma guardada');
+};
+$('#penOnly').addEventListener('change', e=>{ try{ localStorage.setItem('penOnly', e.target.checked?'1':'0'); }catch(err){} });
 async function clearSig(id){
   if(!cur.firmas[id].img) return;
   if(!await confirmDlg('Borrar firma','¿Borrar la firma de <b>'+esc(X.SIGS.find(s=>s.id===id).t)+'</b>?','Borrar')) return;
-  Object.assign(cur.firmas[id],{img:'',ts:0}); pads[id].clear();
-  const w=$(`[data-sig="${id}"]`); w.querySelector('.padwrap').classList.remove('signed');
-  const st=w.querySelector('.st'); st.textContent='Sin firma'; st.classList.remove('okc'); scheduleSave();
+  Object.assign(cur.firmas[id],{img:'',ts:0}); refreshSig(id); scheduleSave();
 }
-let rzT; window.addEventListener('resize', ()=>{ clearTimeout(rzT); rzT=setTimeout(()=>{ if(cur) Object.values(pads).forEach(p=>p.size()); },200); });
+let rzT; window.addEventListener('resize', ()=>{ clearTimeout(rzT); rzT=setTimeout(()=>{ if($('#dlgSign').open) signSize(); },150); });
 
 /* ============================================================
    VALIDACIONES
