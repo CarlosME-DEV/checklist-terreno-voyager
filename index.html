@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f3d5e">
+<title>Check List Terreno Voyager</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+.appbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 4px 12px}
+.pill{font-size:13px;font-weight:600;border-radius:999px;padding:4px 10px;background:#dcf3e2;color:#1a7f37}
+.pill.off{background:#fff1d6;color:#a15c00}
+.upd{position:fixed;left:12px;right:12px;top:12px;z-index:60;background:#15202b;color:#fff;border-radius:12px;padding:10px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.upd span{flex:1}
+
+:root{
+  --bg:#eef2f5; --card:#ffffff; --ink:#15202b; --muted:#5b6b78; --line:#d5dde3;
+  --brand:#0f3d5e; --brand-2:#1d6fa5; --ok:#1a7f37; --ok-bg:#dcf3e2; --bad:#c62828; --bad-bg:#fde2e1;
+  --na:#57606a; --na-bg:#e6e9ec; --warn:#a15c00; --warn-bg:#fff1d6; --focus:#1d6fa5;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+/* ---------- barra superior ---------- */
+.top{position:sticky;top:0;z-index:20;background:var(--brand);color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.top-row{display:flex;align-items:center;gap:8px;padding:8px 12px}
+.top h1{font-size:17px;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .save{font-size:13px;opacity:.85;white-space:nowrap}
+.tbtn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:10px;padding:8px 12px;min-height:44px;white-space:nowrap}
+.tbtn.primary{background:#fff;color:var(--brand);border-color:#fff;font-weight:600}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:0 12px 8px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:999px;padding:6px 12px;font-size:14px;min-height:36px}
+.chip b{font-weight:700;margin-right:4px}
+.chip .p{opacity:.8;font-size:12px}
+.chip.done{background:#2e8b57;border-color:#2e8b57}
+/* ---------- contenido ---------- */
+main{max-width:1100px;margin:0 auto;padding:12px 12px 120px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:0 0 12px}
+.sec-title{font-size:19px;margin:22px 4px 10px;color:var(--brand);scroll-margin-top:120px}
+.sub-title{font-size:14px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:16px 4px 8px;font-weight:700}
+.note{background:#e8f1f8;border-left:4px solid var(--brand-2);border-radius:8px;padding:10px 12px;font-size:14px;color:#24394a;margin:0 0 12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px;font-weight:600}
+.field input,.field select,textarea,.val{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;min-height:44px}
+.field input[readonly]{background:#f4f6f8}
+.inrow{display:flex;gap:6px}
+.inrow input{flex:1}
+.mini{border:1px solid var(--line);background:#f4f6f8;border-radius:10px;padding:0 12px;min-height:44px;white-space:nowrap}
+textarea{resize:vertical;min-height:44px;display:block}
+input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid color-mix(in srgb,var(--focus) 40%,transparent);outline-offset:1px;border-color:var(--focus)}
+/* ---------- tarea ---------- */
+.task{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin:0 0 10px;scroll-margin-top:120px}
+.task.has-err{border-color:var(--bad);box-shadow:0 0 0 2px var(--bad-bg)}
+.task.complete{border-left:5px solid var(--ok)}
+.task-h{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}
+.num{flex:none;background:var(--brand);color:#fff;border-radius:8px;min-width:30px;height:30px;display:grid;place-items:center;font-weight:700;font-size:14px}
+.txt{flex:1;font-weight:500;padding-top:3px}
+.flag{flex:none;font-size:12px;font-weight:700;border-radius:999px;padding:4px 8px;display:none}
+.task.has-err .flag{display:inline-block;background:var(--bad-bg);color:var(--bad)}
+.eqs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.eq{border:1px solid var(--line);border-radius:12px;padding:8px;background:#fafbfc}
+.eq.disabled{opacity:.45;pointer-events:none}
+.eq-l{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:.05em}
+.eq .val{margin-bottom:6px;min-height:40px;padding:8px 10px}
+.seg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
+.seg button{border:1px solid var(--line);background:#fff;border-radius:9px;min-height:46px;font-size:18px;font-weight:700;color:#8a96a0}
+.seg button[data-s="na"]{font-size:13px}
+.seg button.on[data-s="ok"]{background:var(--ok);border-color:var(--ok);color:#fff}
+.seg button.on[data-s="bad"]{background:var(--bad);border-color:var(--bad);color:#fff}
+.seg button.on[data-s="na"]{background:var(--na);border-color:var(--na);color:#fff}
+.obsrow{display:flex;gap:8px;margin-top:10px;align-items:flex-start}
+.obsrow textarea{flex:1}
+.cam{flex:none;display:grid;place-items:center;width:52px;height:46px;border:1px solid var(--line);border-radius:10px;background:#f4f6f8;font-size:22px;cursor:pointer;position:relative}
+.cam input{position:absolute;inset:0;opacity:0;width:100%;cursor:pointer}
+.cam .cnt{position:absolute;top:-6px;right:-6px;background:var(--brand-2);color:#fff;font-size:11px;font-weight:700;border-radius:999px;min-width:18px;height:18px;display:grid;place-items:center;padding:0 4px}
+.photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.photos:empty{display:none}
+.ph{position:relative;width:110px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.ph img{display:block;width:110px;height:82px;object-fit:cover;cursor:zoom-in}
+.ph select{width:100%;border:0;border-top:1px solid var(--line);padding:4px;font-size:13px;background:#fff}
+.ph .del{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);color:#fff;border:0;border-radius:999px;width:28px;height:28px;font-size:14px}
+/* sección C sin extractor */
+.noexh{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+.toggle{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:44px}
+.toggle input{width:22px;height:22px}
+/* calificación final */
+.ftable{display:grid;gap:10px}
+.frow .eqs .seg{grid-template-columns:repeat(4,1fr)}
+.frow .seg button{font-size:14px}
+.seg button.on[data-f="A"]{background:var(--ok);border-color:var(--ok);color:#fff}
+.seg button.on[data-f="AO"]{background:#d08700;border-color:#d08700;color:#fff}
+.seg button.on[data-f="NoA"]{background:var(--bad);border-color:var(--bad);color:#fff}
+.seg button.on[data-f="NA"]{background:var(--na);border-color:var(--na);color:#fff}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px;color:var(--muted);margin:0 4px 10px}
+/* firmas */
+.sig{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
+.sig h3{margin:0 0 10px;font-size:16px}
+.padwrap{position:relative;margin-top:10px;border:2px dashed #9fb1bf;border-radius:12px;background:#fff;height:210px;touch-action:none}
+.padwrap.signed{border-style:solid;border-color:var(--ok)}
+.padwrap canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;border-radius:10px}
+.padwrap .hint{position:absolute;left:0;right:0;bottom:44px;text-align:center;color:#a8b5bf;pointer-events:none;font-size:14px}
+.padwrap .baseline{position:absolute;left:24px;right:24px;bottom:38px;border-bottom:1px solid #c5d0d8;pointer-events:none}
+.padwrap.signed .hint{display:none}
+.sigbar{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.sigbar .st{flex:1;font-size:13px;color:var(--muted)}
+.sigbar .st.okc{color:var(--ok);font-weight:600}
+/* barra inferior */
+.bottom{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(255,255,255,.96);border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center}
+.btn{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 16px;min-height:48px;font-weight:600}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.danger{color:var(--bad);border-color:#efb7b5}
+/* lista de inspecciones */
+.home-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:6px 4px 14px}
+.home-h h2{margin:0;font-size:20px}
+.ilist{display:grid;gap:10px}
+.icard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+.icard h3{margin:0 0 4px;font-size:17px}
+.icard .meta{font-size:13px;color:var(--muted)}
+.bar{height:8px;background:#e3e9ee;border-radius:99px;overflow:hidden;margin-top:8px;max-width:360px}
+.bar i{display:block;height:100%;background:var(--brand-2)}
+.iacts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.badge{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:middle}
+.badge.ok{background:var(--ok-bg);color:var(--ok)}
+.badge.pend{background:var(--warn-bg);color:var(--warn)}
+.empty{text-align:center;color:var(--muted);padding:40px 10px}
+/* diálogos */
+dialog{border:0;border-radius:16px;padding:0;max-width:min(680px,94vw);width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(10,25,40,.55)}
+.dh{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.dh h2{margin:0;font-size:18px;flex:1}
+.db{padding:12px 16px;max-height:62vh;overflow:auto}
+.df{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.issue{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:10px;margin-bottom:6px;cursor:pointer}
+.issue.err{background:var(--bad-bg)}
+.issue.warn{background:var(--warn-bg)}
+.issue .ic{font-weight:800}
+.issue.err .ic{color:var(--bad)}
+.issue.warn .ic{color:var(--warn)}
+.allok{background:var(--ok-bg);color:var(--ok);padding:14px;border-radius:10px;font-weight:600}
+#viewer img{display:block;max-width:100%;max-height:75vh;margin:0 auto}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#15202b;color:#fff;padding:10px 16px;border-radius:10px;z-index:50;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+@media (max-width:640px){
+  .grid2{grid-template-columns:1fr}
+  .eqs{gap:5px}
+  .eq{padding:6px}
+  .seg button{min-height:42px;font-size:16px}
+  .icard{grid-template-columns:1fr}
+  .iacts{justify-content:flex-start}
+}
+/* ---------- impresión / PDF ---------- */
+#print{display:none}
+@media print{
+  @page{size:A4;margin:11mm 10mm}
+  body{background:#fff}
+  #app,.top,.bottom,dialog,.toast{display:none!important}
+  #print{display:block;font:10pt/1.3 Arial,Helvetica,sans-serif;color:#000}
+  #print h1{font-size:13pt;margin:0 0 2mm;text-align:center}
+  #print h2{font-size:10.5pt;margin:4mm 0 1.5mm;background:#0f3d5e;color:#fff;padding:1.2mm 2mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #print .subt{text-align:center;font-size:9pt;margin-bottom:3mm}
+  #print table{width:100%;border-collapse:collapse;page-break-inside:auto}
+  #print tr{page-break-inside:avoid}
+  #print th,#print td{border:0.3mm solid #555;padding:1mm 1.5mm;vertical-align:top;font-size:8.5pt}
+  #print th{background:#dfe7ee;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #print td.c{text-align:center;width:16mm}
+  #print td.n{text-align:center;width:7mm}
+  #print tr.grp td{background:#eef2f5;font-weight:700;font-style:italic;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #print .s-ok{color:#1a7f37;font-weight:700}
+  #print .s-bad{color:#c62828;font-weight:700}
+  #print .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm}
+  #print .pgrid figure{margin:0;page-break-inside:avoid;border:0.3mm solid #999;padding:1mm}
+  #print .pgrid img{width:100%;height:48mm;object-fit:cover;display:block}
+  #print .pgrid figcaption{font-size:7.5pt;margin-top:1mm}
+  #print .sigimg{height:20mm;max-width:60mm;display:block}
+  #print .legend-p{font-size:8pt;margin:1mm 0 2mm}
+  #print .foot{font-size:7.5pt;color:#555;margin-top:4mm;text-align:right}
+  #print .avoid{page-break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<!-- =================== PANTALLA: LISTA =================== -->
+<div id="app">
+<section id="home">
+  <div class="top"><div class="top-row"><h1>Check List de Terreno · Retrofit TRANE Voyager</h1></div></div>
+  <main>
+    <div class="appbar">
+      <span class="pill" id="netPill">En línea</span>
+      <span class="pill hidden" id="offReady">✓ Disponible sin conexión</span>
+      <button class="btn hidden" id="btnInstall">Instalar en la tablet</button>
+    </div>
+    <div class="home-h">
+      <h2>Inspecciones guardadas</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <label class="btn" style="display:inline-grid;place-items:center">Importar respaldo<input type="file" id="importFile" accept=".json,application/json" class="hidden"></label>
+        <button class="btn primary" id="btnNew">+ Nueva inspección</button>
+      </div>
+    </div>
+    <div id="ilist" class="ilist"></div>
+    <p class="note" style="margin-top:18px">Los datos se guardan automáticamente en esta tablet (en este navegador). Exporta un <b>respaldo .json</b> o el <b>PDF</b> al terminar cada inspección: si se borran los datos del navegador, se pierden las inspecciones no respaldadas.</p>
+  </main>
+</section>
+
+<!-- =================== PANTALLA: FORMULARIO =================== -->
+<section id="formView" class="hidden">
+  <div class="top">
+    <div class="top-row">
+      <button class="tbtn" id="btnBack" aria-label="Volver a la lista">◀ Lista</button>
+      <h1 id="ftitle">Inspección</h1>
+      <span class="save" id="saveState"></span>
+    </div>
+    <nav class="chips" id="chips"></nav>
+  </div>
+  <main id="form"></main>
+  <div class="bottom">
+    <button class="btn" id="btnReview">Revisar</button>
+    <button class="btn" id="btnJson">Respaldo .json</button>
+    <button class="btn primary" id="btnPdf">Generar PDF</button>
+  </div>
+</section>
+</div>
+
+<!-- diálogos -->
+<dialog id="dlgReview">
+  <div class="dh"><h2>Revisión del formulario</h2><button class="btn" data-close>Cerrar</button></div>
+  <div class="db" id="reviewBody"></div>
+  <div class="df"><button class="btn" data-close>Seguir llenando</button><button class="btn primary" id="btnPdfAnyway">Generar PDF de todas formas</button></div>
+</dialog>
+<dialog id="viewer">
+  <div class="dh"><h2 id="viewerCap">Foto</h2><button class="btn" data-close>Cerrar</button></div>
+  <div class="db"><img id="viewerImg" alt=""></div>
+</dialog>
+<dialog id="dlgConfirm">
+  <div class="dh"><h2 id="cfTitle">Confirmar</h2></div>
+  <div class="db" id="cfBody"></div>
+  <div class="df"><button class="btn" id="cfNo">Cancelar</button><button class="btn primary" id="cfYes">Aceptar</button></div>
+</dialog>
+<div class="toast" id="toast"></div>
+
+<!-- informe para impresión / PDF -->
+<div id="print"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   DEFINICIÓN DEL CHECK LIST (Anexo)
+   Fila: [n°, tarea, placeholder de medición (opcional)]
+   ============================================================ */
+const EQ = ['L1','C1','L5'];
+const SECTIONS = [
+  {id:'A', title:'A. Seguridad previa al trabajo', groups:[{rows:[
+    [1,'Permiso de trabajo emitido y corte de climatización coordinado con el cliente'],
+    [2,'Tiempo de descarga de condensadores del VDF cumplido y ausencia de tensión en el bus DC verificada'],
+    [3,'Rodetes bloqueados mecánicamente'],
+    [4,'Correas de los ventiladores retiradas antes de energizar los motores'],
+    [5,'Trabajo en altura: arnés, línea de vida y bordes delimitados'],
+    [6,'EPP completo, incluido EPP dieléctrico para trabajos eléctricos'],
+  ]}]},
+  {id:'B', title:'B. Ventilador principal de inyección', groups:[
+    {title:'Inspección visual (equipo detenido)', rows:[
+      [1,'Rodete: suciedad, fisuras, deformaciones, desgaste de álabes y fijación al eje'],
+      [2,'Eje y rodamientos: corrosión, pérdida de grasa y daños visibles'],
+      [3,'Poleas: desgaste y alineación aparente'],
+      [4,'Correas: grietas, desgaste y deshilachado'],
+      [5,'Soportes: base, pernos de anclaje, aisladores de vibración y conexión flexible al ducto'],
+      [6,'Datos de placa del motor y del ventilador (anotar)','kW / V / A / rpm'],
+    ]},
+    {title:'Pruebas eléctricas del motor (correas retiradas)', rows:[
+      [7,'Caja de bornes y conexiones'],
+      [8,'Resistencia de aislación (MΩ)','MΩ'],
+      [9,'Resistencia de devanados U-V / V-W / W-U (Ω)','U-V / V-W / W-U Ω'],
+    ]},
+    {title:'Motor operando desacoplado', rows:[
+      [10,'Tensión entre fases (V) y desbalance (%)','V · %'],
+      [11,'Corriente en vacío por fase (A)','L1 / L2 / L3 A'],
+      [12,'Temperatura del motor y conexiones por termografía (°C)','°C'],
+      [13,'Ruido o funcionamiento anormal del motor'],
+    ]},
+  ]},
+  {id:'C', title:'C. Ventilador de extracción (exhaust) — solo si corresponde', exhaust:true, groups:[
+    {title:'Inspección visual (equipo detenido)', rows:[
+      [1,'Rodete: suciedad, fisuras, deformaciones, desgaste de álabes y fijación al eje'],
+      [2,'Eje y rodamientos: corrosión, pérdida de grasa y daños visibles'],
+      [3,'Poleas y correas: desgaste, grietas y alineación aparente'],
+      [4,'Soportes: base y aisladores de vibración'],
+      [5,'Compuertas de extracción y alivio: estado de hojas y sellos'],
+      [6,'Datos de placa del motor y del ventilador (anotar)','kW / V / A / rpm'],
+    ]},
+    {title:'Pruebas eléctricas del motor (correas retiradas)', rows:[
+      [7,'Conexiones'],
+      [8,'Resistencia de aislación (MΩ)','MΩ'],
+    ]},
+    {title:'Motor operando desacoplado', rows:[
+      [9,'Tensión entre fases (V) y desbalance (%)','V · %'],
+      [10,'Corriente en vacío por fase (A)','L1 / L2 / L3 A'],
+      [11,'Temperatura por termografía (°C)','°C'],
+      [12,'Actuador de compuertas: recorrido completo y respuesta a la señal de control'],
+    ]},
+  ]},
+  {id:'D', title:'D. VDF del ventilador principal de inyección', groups:[
+    {title:'Datos e historial', rows:[
+      [1,'Marca, modelo, potencia y versión de firmware (anotar)','Marca / modelo / kW / FW'],
+      [2,'Respaldo de parámetros realizado'],
+      [3,'Alarmas, registro de fallas y horas de operación (anotar)','Alarmas / h'],
+    ]},
+    {title:'Inspección con el VDF desenergizado', rows:[
+      [4,'Polvo, humedad, corrosión y signos de sobrecalentamiento'],
+      [5,'Estado de condensadores'],
+      [6,'Ventiladores de enfriamiento y filtros'],
+      [7,'Apriete de bornes de potencia y control'],
+      [8,'Puesta a tierra'],
+      [9,'Protecciones de entrada (interruptor o fusibles)'],
+    ]},
+    {title:'Pruebas con el motor desacoplado (sin correas)', rows:[
+      [10,'Termografía de conexiones durante la prueba (°C)','°C'],
+      [11,'Tensión de entrada (V) y desbalance (%)','V · %'],
+      [12,'Corriente de salida (A)','A'],
+      [13,'Tensión del bus DC (V)','V DC'],
+      [14,'Temperatura del disipador (°C)','°C'],
+      [15,'Funcionamiento en todo el rango de velocidad'],
+      [16,'Rampas de aceleración y desaceleración'],
+      [17,'Respuesta a la señal de presión estática de ducto (simulada)'],
+      [18,'Compatibilidad de señales y protocolo con el controlador del retrofit'],
+    ]},
+  ]},
+  {id:'E', title:'E. Verificaciones complementarias y cierre', groups:[{rows:[
+    [1,'Sensor de presión estática de ducto y su toma de presión'],
+    [2,'Interruptores de flujo de aire (prueba por simulación) y seguridades de los ventiladores'],
+    [3,'Gabinete de ventiladores: limpieza, sellos de puertas y drenajes'],
+    [4,'Registro fotográfico y termográfico completo'],
+    [5,'Correas reinstaladas o rotuladas junto al equipo, según lo acordado con el cliente'],
+    [6,'Bloqueo y etiquetado (LOTO) aplicado al equipo y al VDF al finalizar las pruebas; equipo dejado bloqueado para la implementación del Retrofit'],
+  ]}]},
+];
+const FINAL = [
+  {id:'iny', t:'Ventilador principal de inyección'},
+  {id:'ext', t:'Ventilador de extracción (si corresponde)', exhaust:true},
+  {id:'vdf', t:'VDF del ventilador de inyección'},
+];
+const FOPTS = [['A','A'],['AO','AO'],['NoA','NoA'],['NA','N/A']];
+const FLABEL = {A:'Apto', AO:'Apto con observaciones', NoA:'No apto', NA:'N/A'};
+const SIGS = [
+  {id:'ctrl', t:'Técnico Grupo de Control'},
+  {id:'sup',  t:'Supervisor'},
+  {id:'cli',  t:'Representante del cliente'},
+];
+const SYM = {ok:'✓', bad:'✗', na:'N/A'};
+
+/* índice de filas */
+const ROWS = [];
+SECTIONS.forEach(s => s.groups.forEach(g => g.rows.forEach(r => ROWS.push({sec:s.id, key:s.id+r[0], n:r[0], t:r[1], m:r[2]||'', exhaust:!!s.exhaust}))));
+const ROW = Object.fromEntries(ROWS.map(r => [r.key, r]));
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+const pad2 = n => String(n).padStart(2,'0');
+const todayISO = () => { const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; };
+const nowHM = () => { const d=new Date(); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+const fmtDate = iso => { if(!iso) return ''; const [y,m,d]=iso.split('-'); return `${d}-${m}-${y}`; };
+const fmtTs = ts => { const d=new Date(ts); return `${pad2(d.getDate())}-${pad2(d.getMonth()+1)}-${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2200); }
+function confirmDlg(title, html, yes='Aceptar'){
+  return new Promise(res=>{
+    const d=$('#dlgConfirm'); $('#cfTitle').textContent=title; $('#cfBody').innerHTML=html; $('#cfYes').textContent=yes;
+    const done=v=>{ d.close(); $('#cfYes').onclick=$('#cfNo').onclick=null; res(v); };
+    $('#cfYes').onclick=()=>done(true); $('#cfNo').onclick=()=>done(false);
+    d.showModal();
+  });
+}
+document.addEventListener('click', e => { const c=e.target.closest('[data-close]'); if(c) c.closest('dialog').close(); });
+
+/* ============================================================
+   ALMACENAMIENTO (IndexedDB, con respaldo en memoria)
+   ============================================================ */
+let db = null; const mem = {insp:new Map(), photos:new Map()};
+function openDB(){
+  return new Promise(res=>{
+    try{
+      const r=indexedDB.open('efintel_checklist_voyager',1);
+      r.onupgradeneeded=()=>{ const d=r.result; d.createObjectStore('insp',{keyPath:'id'}); d.createObjectStore('photos',{keyPath:'id'}).createIndex('insp','inspId'); };
+      r.onsuccess=()=>res(r.result); r.onerror=()=>res(null);
+    }catch(e){ res(null); }
+  });
+}
+const rq = r => new Promise((res,rej)=>{ r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
+const store = (s,m='readonly') => db.transaction(s,m).objectStore(s);
+const dbAll = async s => db ? rq(store(s).getAll()) : [...mem[s].values()];
+const dbPut = async (s,v) => db ? rq(store(s,'readwrite').put(v)) : mem[s].set(v.id, structuredClone(v));
+const dbDel = async (s,k) => db ? rq(store(s,'readwrite').delete(k)) : mem[s].delete(k);
+const dbPhotosOf = async id => db ? rq(store('photos').index('insp').getAll(id)) : [...mem.photos.values()].filter(p=>p.inspId===id);
+
+/* ============================================================
+   MODELO
+   ============================================================ */
+function newInsp(base){
+  const h = base?.header || {};
+  return {
+    id: uid(), created: Date.now(), updated: Date.now(),
+    header: {
+      fecha: todayISO(), cliente: h.cliente || 'Mall Plaza Iquique', equipo: h.equipo || 'TRANE Voyager (3 und.)',
+      tag: h.tag || 'L1 / C1 / L5', tecControl: h.tecControl || '', tecServicio: h.tecServicio || '', horaIni:'', horaFin:''
+    },
+    cells:{}, obs:{}, noExh:{L1:false,C1:false,L5:false}, final:{}, finalObs:{}, obsGen:'',
+    firmas: Object.fromEntries(SIGS.map(s=>[s.id,{nombre: base?.firmas?.[s.id]?.nombre || '', fecha:'', img:'', ts:0}])),
+  };
+}
+let cur = null, curPhotos = [];
+const cell = (k,eq) => cur.cells[k+'|'+eq] || (cur.cells[k+'|'+eq] = {s:'', v:''});
+const isNoExh = (row, eq) => row.exhaust && cur.noExh[eq];
+const effS = (k,eq,ins=cur) => (ROW[k].exhaust && ins.noExh[eq]) ? 'na' : (ins.cells[k+'|'+eq]?.s || '');
+const effF = (c,eq,ins=cur) => (c==='ext' && ins.noExh[eq]) ? 'NA' : (ins.final[c+'|'+eq] || '');
+
+function progress(ins){
+  let tot=0, done=0; const bySec={};
+  ROWS.forEach(r=>{ EQ.forEach(eq=>{ tot++; const b=bySec[r.sec]||(bySec[r.sec]={t:0,d:0}); b.t++; if(effS(r.key,eq,ins)){done++; b.d++;} }); });
+  const f={t:0,d:0}; FINAL.forEach(c=>EQ.forEach(eq=>{ tot++; f.t++; if(effF(c.id,eq,ins)){done++; f.d++;} })); bySec.F=f;
+  const sg={t:SIGS.length,d:SIGS.filter(s=>ins.firmas[s.id]?.img).length}; bySec.S=sg; tot+=sg.t; done+=sg.d;
+  return {pct: Math.round(done*100/tot), bySec};
+}
+
+/* ============================================================
+   GUARDADO AUTOMÁTICO
+   ============================================================ */
+let saveT=null;
+function scheduleSave(){
+  $('#saveState').textContent='Guardando…';
+  clearTimeout(saveT); saveT=setTimeout(saveNow, 400);
+  updateChips();
+}
+async function saveNow(){
+  clearTimeout(saveT); saveT=null; if(!cur) return;
+  cur.updated=Date.now();
+  try{ await dbPut('insp', cur); $('#saveState').textContent='Guardado ✓ '+nowHM(); }
+  catch(e){ $('#saveState').textContent='⚠ Error al guardar'; toast('No se pudo guardar: '+e.message); }
+}
+window.addEventListener('visibilitychange', ()=>{ if(document.hidden && saveT) saveNow(); });
+
+/* ============================================================
+   LISTA DE INSPECCIONES
+   ============================================================ */
+async function showHome(){
+  if(saveT) await saveNow();
+  cur=null; curPhotos=[];
+  $('#formView').classList.add('hidden'); $('#home').classList.remove('hidden');
+  const list = (await dbAll('insp')).sort((a,b)=>b.updated-a.updated);
+  const box=$('#ilist');
+  if(!list.length){ box.innerHTML='<div class="empty card">Aún no hay inspecciones. Toca <b>+ Nueva inspección</b> para comenzar.</div>'; return; }
+  box.innerHTML = list.map(i=>{
+    const p=progress(i), signed=SIGS.every(s=>i.firmas[s.id]?.img);
+    return `<div class="icard" data-id="${i.id}">
+      <div><h3>${esc(i.header.cliente)} · ${esc(fmtDate(i.header.fecha))}${signed?'<span class="badge ok">Firmado</span>':'<span class="badge pend">En curso</span>'}</h3>
+      <div class="meta">${esc(i.header.equipo)} · ${esc(i.header.tag)} · Téc.: ${esc(i.header.tecControl||'—')} · Modificado ${fmtTs(i.updated)}</div>
+      <div class="bar"><i style="width:${p.pct}%"></i></div><div class="meta">${p.pct}% completado</div></div>
+      <div class="iacts"><button class="btn primary" data-act="open">Abrir</button><button class="btn" data-act="dup">Duplicar</button><button class="btn" data-act="json">.json</button><button class="btn danger" data-act="del">Eliminar</button></div>
+    </div>`;
+  }).join('');
+}
+$('#ilist').addEventListener('click', async e=>{
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  const id=b.closest('.icard').dataset.id; const list=await dbAll('insp'); const ins=list.find(x=>x.id===id); if(!ins) return;
+  if(b.dataset.act==='open') openInsp(ins);
+  if(b.dataset.act==='dup'){ const n=newInsp(ins); await dbPut('insp',n); toast('Copia creada con los datos de cabecera'); showHome(); }
+  if(b.dataset.act==='json') exportJson(ins);
+  if(b.dataset.act==='del'){
+    if(await confirmDlg('Eliminar inspección', `¿Eliminar la inspección de <b>${esc(ins.header.cliente)} del ${esc(fmtDate(ins.header.fecha))}</b> y sus fotos? Esta acción no se puede deshacer.`, 'Eliminar')){
+      for(const p of await dbPhotosOf(id)) await dbDel('photos',p.id);
+      await dbDel('insp',id); showHome();
+    }
+  }
+});
+$('#btnNew').onclick = async ()=>{ const n=newInsp(); await dbPut('insp',n); openInsp(n); };
+$('#btnBack').onclick = showHome;
+
+/* ============================================================
+   FORMULARIO
+   ============================================================ */
+async function openInsp(ins){
+  cur = ins; ['cells','obs','noExh','final','finalObs','firmas'].forEach(k=>cur[k]=cur[k]||{});
+  curPhotos = await dbPhotosOf(ins.id);
+  $('#home').classList.add('hidden'); $('#formView').classList.remove('hidden');
+  renderForm(); window.scrollTo(0,0);
+  $('#saveState').textContent='Guardado ✓';
+}
+
+function eqCell(r, eq){
+  const c = cur.cells[r.key+'|'+eq] || {}; const s=effS(r.key,eq);
+  return `<div class="eq${isNoExh(r,eq)?' disabled':''}" data-eq="${eq}">
+    <div class="eq-l">EQUIPO ${eq}</div>
+    ${r.m?`<input class="val" data-f="v" placeholder="${esc(r.m)}" value="${esc(c.v)}" autocomplete="off">`:''}
+    <div class="seg">${['ok','bad','na'].map(k=>`<button type="button" data-s="${k}" class="${s===k?'on':''}" aria-label="${eq} ${k==='ok'?'en buen estado':k==='bad'?'con falla':'no aplica'}">${SYM[k]}</button>`).join('')}</div>
+  </div>`;
+}
+function taskHTML(r){
+  return `<div class="task" id="t-${r.key}" data-key="${r.key}">
+    <div class="task-h"><span class="num">${r.n}</span><span class="txt">${esc(r.t)}</span><span class="flag">Falta obs./foto</span></div>
+    <div class="eqs">${EQ.map(eq=>eqCell(r,eq)).join('')}</div>
+    <div class="obsrow"><textarea rows="1" data-f="obs" placeholder="Observación${r.key?' ('+r.key+')':''}">${esc(cur.obs[r.key]||'')}</textarea>
+      <label class="cam" title="Agregar foto">📷<span class="cnt hidden"></span><input type="file" accept="image/*" multiple data-photo="${r.key}"></label></div>
+    <div class="photos" data-photos="${r.key}"></div>
+  </div>`;
+}
+
+function renderForm(){
+  const h=cur.header;
+  const fld=(k,l,type='text',ro=false,now=false)=>`<div class="field"><label for="h-${k}">${l}</label>${now?'<div class="inrow">':''}<input id="h-${k}" type="${type}" data-h="${k}" value="${esc(h[k])}" ${ro?'readonly':''}>${now?`<button type="button" class="mini" data-now="${k}">Ahora</button></div>`:''}</div>`;
+  let html = `
+  <h2 class="sec-title" id="s-H">Datos de la inspección</h2>
+  <div class="note">En cada equipo marque <b>✓</b> (en buen estado), <b>✗</b> (con falla u observación) o <b>N/A</b> (no aplica). En las tareas de medición anote el valor y la unidad. Los ventiladores no se hacen girar: las pruebas de motores y VDF se realizan con las correas retiradas. <b>Toda tarea marcada con ✗ debe tener observación y registro fotográfico.</b></div>
+  <div class="card"><div class="grid2">
+    ${fld('fecha','Fecha','date')}${fld('cliente','Cliente y ubicación')}
+    ${fld('equipo','Equipo')}${fld('tag','Tag o N° de serie')}
+    ${fld('tecControl','Técnico Grupo de Control')}${fld('tecServicio','Técnico Grupo de Servicio Técnico')}
+    ${fld('horaIni','Hora de inicio','time',false,true)}${fld('horaFin','Hora de término','time',false,true)}
+  </div></div>`;
+
+  SECTIONS.forEach(s=>{
+    html += `<h2 class="sec-title" id="s-${s.id}">${esc(s.title)}</h2>`;
+    if(s.exhaust){
+      html += `<div class="note">Si el equipo no tiene ventilador de extracción, actívalo aquí y toda la columna quedará como N/A.</div>
+      <div class="noexh">${EQ.map(eq=>`<label class="toggle"><input type="checkbox" data-noexh="${eq}" ${cur.noExh[eq]?'checked':''}> ${eq} sin ventilador de extracción</label>`).join('')}</div>`;
+    }
+    s.groups.forEach(g=>{
+      if(g.title) html += `<div class="sub-title">${esc(g.title)}</div>`;
+      g.rows.forEach(r=> html += taskHTML(ROW[s.id+r[0]]));
+    });
+  });
+
+  html += `<h2 class="sec-title" id="s-F">F. Calificación final de los componentes</h2>
+  <div class="legend"><span><b>A</b> Apto: se mantiene en servicio sin intervenciones</span><span><b>AO</b> Apto con observaciones: requiere mantención o ajustes</span><span><b>NoA</b> No apto: reparación mayor o reemplazo</span></div>
+  <div class="ftable">${FINAL.map(c=>`<div class="task frow" id="f-${c.id}" data-final="${c.id}">
+    <div class="task-h"><span class="txt"><b>${esc(c.t)}</b></span></div>
+    <div class="eqs">${EQ.map(eq=>{ const v=effF(c.id,eq), dis=c.exhaust&&cur.noExh[eq];
+      return `<div class="eq${dis?' disabled':''}" data-eq="${eq}"><div class="eq-l">EQUIPO ${eq}</div><div class="seg">${FOPTS.map(([k,l])=>`<button type="button" data-f="${k}" class="${v===k?'on':''}">${l}</button>`).join('')}</div></div>`; }).join('')}</div>
+    <div class="obsrow"><textarea rows="1" data-fobs="${c.id}" placeholder="Observación principal">${esc(cur.finalObs[c.id]||'')}</textarea></div>
+  </div>`).join('')}</div>
+
+  <h2 class="sec-title" id="s-G">G. Observaciones generales</h2>
+  <div class="task" data-key="G" id="t-G">
+    <div class="obsrow" style="margin-top:0"><textarea rows="4" data-f="obsGen" placeholder="Observaciones generales de la inspección">${esc(cur.obsGen||'')}</textarea>
+    <label class="cam" title="Agregar foto general">📷<span class="cnt hidden"></span><input type="file" accept="image/*" multiple data-photo="G"></label></div>
+    <div class="photos" data-photos="G"></div>
+  </div>
+
+  <h2 class="sec-title" id="s-S">Firmas</h2>
+  <label class="toggle" style="margin-bottom:12px"><input type="checkbox" id="penOnly"> Firmar solo con el lápiz (ignora la palma y los dedos)</label>
+  ${SIGS.map(s=>{ const f=cur.firmas[s.id]||{};
+    return `<div class="sig" data-sig="${s.id}"><h3>${esc(s.t)}</h3>
+      <div class="grid2"><div class="field"><label>Nombre</label><input data-sname="${s.id}" value="${esc(f.nombre)}" autocomplete="off"></div>
+      <div class="field"><label>Fecha</label><input type="date" data-sdate="${s.id}" value="${esc(f.fecha)}"></div></div>
+      <div class="padwrap${f.img?' signed':''}"><div class="baseline"></div><div class="hint">Firme aquí con el lápiz</div><canvas></canvas></div>
+      <div class="sigbar"><span class="st${f.img?' okc':''}">${f.img?'Firmado el '+fmtTs(f.ts):'Sin firma'}</span><button type="button" class="btn" data-sclear="${s.id}">Borrar firma</button></div>
+    </div>`; }).join('')}
+  `;
+  $('#form').innerHTML = html;
+  $('#ftitle').textContent = `${h.cliente} · ${fmtDate(h.fecha)}`;
+  try{ $('#penOnly').checked = localStorage.getItem('penOnly')==='1'; }catch(e){}
+  ROWS.forEach(r=>{ renderPhotos(r.key); updateTask(r.key); }); renderPhotos('G');
+  $$('textarea').forEach(autoGrow);
+  SIGS.forEach(s=>setupPad(s.id));
+  updateChips();
+}
+
+function autoGrow(t){ t.style.height='auto'; t.style.height=Math.max(44,t.scrollHeight+2)+'px'; }
+
+function updateTask(k){
+  const r=ROW[k], el=$('#t-'+k); if(!el) return;
+  const ss=EQ.map(eq=>effS(k,eq)); const hasBad=ss.includes('bad');
+  const obsOk=!!(cur.obs[k]||'').trim(), photoOk=curPhotos.some(p=>p.row===k);
+  const err = hasBad && (!obsOk || !photoOk);
+  el.classList.toggle('has-err', err);
+  el.querySelector('.flag').textContent = err ? (!obsOk && !photoOk ? 'Falta obs. y foto' : !obsOk ? 'Falta observación' : 'Falta foto') : '';
+  el.classList.toggle('complete', ss.every(Boolean) && !err);
+}
+
+function updateChips(){
+  if(!cur) return;
+  const p=progress(cur).bySec;
+  const items=[['H','Datos',null]].concat(SECTIONS.map(s=>[s.id,s.id,p[s.id]]),[['F','F',p.F],['G','G',null],['S','Firmas',p.S]]);
+  $('#chips').innerHTML = items.map(([id,l,b])=>`<button type="button" class="chip${b&&b.d===b.t?' done':''}" data-go="s-${id}"><b>${l}</b>${b?`<span class="p">${b.d}/${b.t}</span>`:''}</button>`).join('');
+}
+$('#chips').addEventListener('click', e=>{ const b=e.target.closest('[data-go]'); if(b) document.getElementById(b.dataset.go)?.scrollIntoView({behavior:'smooth',block:'start'}); });
+
+/* ---- eventos del formulario (delegación) ---- */
+$('#form').addEventListener('click', e=>{
+  const sb=e.target.closest('.seg button');
+  if(sb){
+    const eq=sb.closest('.eq').dataset.eq;
+    const t=sb.closest('[data-key]'), fr=sb.closest('[data-final]');
+    if(t){ const k=t.dataset.key, c=cell(k,eq), v=sb.dataset.s; c.s = c.s===v ? '' : v;
+      $$('button',sb.parentNode).forEach(b=>b.classList.toggle('on', b.dataset.s===c.s)); updateTask(k); }
+    else if(fr){ const id=fr.dataset.final+'|'+eq, v=sb.dataset.f; cur.final[id] = cur.final[id]===v ? '' : v;
+      $$('button',sb.parentNode).forEach(b=>b.classList.toggle('on', b.dataset.f===cur.final[id])); }
+    scheduleSave(); return;
+  }
+  const nb=e.target.closest('[data-now]');
+  if(nb){ const k=nb.dataset.now; cur.header[k]=nowHM(); $('#h-'+k).value=cur.header[k]; scheduleSave(); return; }
+  const cl=e.target.closest('[data-sclear]');
+  if(cl){ clearSig(cl.dataset.sclear); return; }
+  const img=e.target.closest('.ph img');
+  if(img){ const p=curPhotos.find(x=>x.id===img.closest('.ph').dataset.pid); $('#viewerImg').src=p.data; $('#viewerCap').textContent=photoCaption(p); $('#viewer').showModal(); return; }
+  const del=e.target.closest('.ph .del');
+  if(del){ delPhoto(del.closest('.ph').dataset.pid); }
+});
+$('#form').addEventListener('input', e=>{
+  const t=e.target;
+  if(t.tagName==='TEXTAREA') autoGrow(t);
+  if(t.dataset.h){ cur.header[t.dataset.h]=t.value; if(['cliente','fecha'].includes(t.dataset.h)) $('#ftitle').textContent=`${cur.header.cliente} · ${fmtDate(cur.header.fecha)}`; }
+  else if(t.dataset.f==='v'){ cell(t.closest('[data-key]').dataset.key, t.closest('.eq').dataset.eq).v=t.value; }
+  else if(t.dataset.f==='obs'){ const k=t.closest('[data-key]').dataset.key; cur.obs[k]=t.value; updateTask(k); }
+  else if(t.dataset.f==='obsGen'){ cur.obsGen=t.value; }
+  else if(t.dataset.fobs){ cur.finalObs[t.dataset.fobs]=t.value; }
+  else if(t.dataset.sname){ cur.firmas[t.dataset.sname].nombre=t.value; }
+  else if(t.dataset.sdate){ cur.firmas[t.dataset.sdate].fecha=t.value; }
+  else return;
+  scheduleSave();
+});
+$('#form').addEventListener('change', async e=>{
+  const t=e.target;
+  if(t.dataset.noexh){
+    const eq=t.dataset.noexh;
+    if(t.checked){
+      const used=ROWS.some(r=>r.exhaust && cur.cells[r.key+'|'+eq]?.s);
+      if(used && !await confirmDlg('Sin ventilador de extracción', `El equipo <b>${eq}</b> ya tiene casillas marcadas en la sección C. Quedarán como N/A (los valores anotados se conservan). ¿Continuar?`)){ t.checked=false; return; }
+    }
+    cur.noExh[eq]=t.checked; scheduleSave(); const y=window.scrollY; renderForm(); window.scrollTo(0,y); return;
+  }
+  if(t.dataset.photo){ const files=[...t.files]; t.value=''; for(const f of files) await addPhoto(f, t.dataset.photo); return; }
+  if(t.id==='penOnly'){ try{ localStorage.setItem('penOnly', t.checked?'1':'0'); }catch(err){} }
+  if(t.dataset.pf){ const p=curPhotos.find(x=>x.id===t.closest('.ph').dataset.pid); p.eq=t.value; await dbPut('photos',p); }
+});
+
+/* ============================================================
+   FOTOS
+   ============================================================ */
+function loadImage(file){ return new Promise((res,rej)=>{ const u=URL.createObjectURL(file), i=new Image(); i.onload=()=>{URL.revokeObjectURL(u);res(i);}; i.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('Imagen no válida'));}; i.src=u; }); }
+async function addPhoto(file, key){
+  try{
+    const img=await loadImage(file), max=1600, sc=Math.min(1, max/Math.max(img.naturalWidth,img.naturalHeight));
+    const w=Math.round(img.naturalWidth*sc), h=Math.round(img.naturalHeight*sc);
+    const c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d');
+    x.drawImage(img,0,0,w,h);
+    const stamp=`${key} · ${cur.header.cliente} · ${fmtTs(Date.now())}`, fs=Math.max(14,Math.round(w/55));
+    x.font=`bold ${fs}px Arial`; const tw=x.measureText(stamp).width;
+    x.fillStyle='rgba(0,0,0,.55)'; x.fillRect(0,h-fs*1.7,tw+fs*1.2,fs*1.7);
+    x.fillStyle='#fff'; x.fillText(stamp, fs*.6, h-fs*.5);
+    const p={id:uid(), inspId:cur.id, row:key, eq:'', data:c.toDataURL('image/jpeg',.8), ts:Date.now()};
+    await dbPut('photos',p); curPhotos.push(p); renderPhotos(key); if(ROW[key]) updateTask(key);
+    cur.updated=Date.now(); scheduleSave(); toast('Foto agregada a '+key);
+  }catch(e){ toast('No se pudo agregar la foto: '+e.message); }
+}
+async function delPhoto(id){
+  if(!await confirmDlg('Eliminar foto','¿Eliminar esta foto?','Eliminar')) return;
+  const p=curPhotos.find(x=>x.id===id); await dbDel('photos',id); curPhotos=curPhotos.filter(x=>x.id!==id);
+  renderPhotos(p.row); if(ROW[p.row]) updateTask(p.row); scheduleSave();
+}
+function renderPhotos(key){
+  const box=$(`[data-photos="${key}"]`); if(!box) return;
+  const ps=curPhotos.filter(p=>p.row===key);
+  box.innerHTML = ps.map(p=>`<div class="ph" data-pid="${p.id}"><img src="${p.data}" alt="Foto ${esc(key)}"><button type="button" class="del" aria-label="Eliminar foto">✕</button>
+    <select data-pf="eq" aria-label="Equipo de la foto"><option value="">General</option>${EQ.map(eq=>`<option ${p.eq===eq?'selected':''}>${eq}</option>`).join('')}</select></div>`).join('');
+  const cnt=box.closest('.task')?.querySelector('.cam .cnt'); if(cnt){ cnt.textContent=ps.length; cnt.classList.toggle('hidden',!ps.length); }
+}
+function photoCaption(p){ const r=ROW[p.row]; return `${p.row}${p.eq?' · '+p.eq:''} — ${r? r.t : 'Observaciones generales'}`; }
+
+/* ============================================================
+   FIRMAS CON LÁPIZ (Pointer Events, sensible a la presión)
+   ============================================================ */
+const pads = {};
+function setupPad(id){
+  const wrap=$(`[data-sig="${id}"] .padwrap`), cv=wrap.querySelector('canvas'), ctx=cv.getContext('2d');
+  let drawing=false, last=null, dirty=false, pid=null;
+  function size(){
+    const r=cv.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+    if(!r.width) return;
+    cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr); ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#0b1f6b'; ctx.fillStyle='#0b1f6b';
+    const src=cur.firmas[id].img; if(src){ const i=new Image(); i.onload=()=>ctx.drawImage(i,0,0,r.width,r.height); i.src=src; }
+  }
+  const pos=e=>{ const r=cv.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top, p:(e.pointerType==='pen'||e.pressure>0&&e.pressure!==.5)? e.pressure : .5}; };
+  const width=p=>1.2+p*3.2;
+  cv.addEventListener('pointerdown', e=>{
+    if($('#penOnly')?.checked && e.pointerType!=='pen') return;
+    e.preventDefault(); drawing=true; pid=e.pointerId; last=pos(e); try{ cv.setPointerCapture(pid); }catch(err){}
+    ctx.beginPath(); ctx.arc(last.x,last.y,width(last.p)/2,0,Math.PI*2); ctx.fill(); dirty=true;
+  });
+  cv.addEventListener('pointermove', e=>{
+    if(!drawing || e.pointerId!==pid) return; e.preventDefault();
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    for(const ev of (evs.length?evs:[e])){ const q=pos(ev); ctx.lineWidth=width((last.p+q.p)/2); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(q.x,q.y); ctx.stroke(); last=q; }
+  });
+  const end=e=>{ if(!drawing || e.pointerId!==pid) return; drawing=false; pid=null; if(dirty) commit(); };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  function commit(){
+    const f=cur.firmas[id]; f.img=cv.toDataURL('image/png'); f.ts=Date.now();
+    if(!f.fecha){ f.fecha=todayISO(); $(`[data-sdate="${id}"]`).value=f.fecha; }
+    wrap.classList.add('signed'); const st=$(`[data-sig="${id}"] .st`); st.textContent='Firmado el '+fmtTs(f.ts); st.classList.add('okc');
+    scheduleSave();
+  }
+  pads[id]={size, clear(){ ctx.clearRect(0,0,cv.width,cv.height); dirty=false; }};
+  size();
+}
+async function clearSig(id){
+  if(!cur.firmas[id].img) return;
+  if(!await confirmDlg('Borrar firma','¿Borrar la firma de <b>'+esc(SIGS.find(s=>s.id===id).t)+'</b>?','Borrar')) return;
+  Object.assign(cur.firmas[id],{img:'',ts:0}); pads[id].clear();
+  const w=$(`[data-sig="${id}"]`); w.querySelector('.padwrap').classList.remove('signed');
+  const st=w.querySelector('.st'); st.textContent='Sin firma'; st.classList.remove('okc'); scheduleSave();
+}
+let rzT; window.addEventListener('resize', ()=>{ clearTimeout(rzT); rzT=setTimeout(()=>{ if(cur) Object.values(pads).forEach(p=>p.size()); },200); });
+
+/* ============================================================
+   VALIDACIONES
+   ============================================================ */
+function validate(){
+  const out=[], h=cur.header;
+  [['fecha','Fecha'],['tecControl','Técnico Grupo de Control'],['tecServicio','Técnico Grupo de Servicio Técnico'],['horaIni','Hora de inicio'],['horaFin','Hora de término']]
+    .forEach(([k,l])=>{ if(!String(h[k]||'').trim()) out.push({sev:'warn', msg:`Datos de la inspección: falta "${l}".`, go:'h-'+k}); });
+  if(h.horaIni && h.horaFin && h.horaFin < h.horaIni) out.push({sev:'warn', msg:'La hora de término es anterior a la de inicio.', go:'h-horaFin'});
+  ROWS.forEach(r=>{
+    const ss=EQ.map(eq=>effS(r.key,eq));
+    if(ss.includes('bad')){
+      const bad=EQ.filter((eq,i)=>ss[i]==='bad').join(', ');
+      if(!(cur.obs[r.key]||'').trim()) out.push({sev:'err', msg:`${r.key} (${bad}) marcada ✗ sin observación.`, go:'t-'+r.key});
+      if(!curPhotos.some(p=>p.row===r.key)) out.push({sev:'err', msg:`${r.key} (${bad}) marcada ✗ sin registro fotográfico.`, go:'t-'+r.key});
+    }
+    if(r.m) EQ.forEach((eq,i)=>{ if((ss[i]==='ok'||ss[i]==='bad') && !(cur.cells[r.key+'|'+eq]?.v||'').trim()) out.push({sev:'warn', msg:`${r.key} · ${eq}: medición marcada pero sin valor anotado.`, go:'t-'+r.key}); });
+  });
+  SECTIONS.forEach(s=>{
+    const pend=[]; s.groups.forEach(g=>g.rows.forEach(rw=>{ const k=s.id+rw[0]; const m=EQ.filter(eq=>!effS(k,eq)); if(m.length) pend.push(k); }));
+    if(pend.length) out.push({sev:'warn', msg:`Sección ${s.id}: ${pend.length} tarea(s) con casillas sin marcar (${pend.slice(0,6).join(', ')}${pend.length>6?'…':''}).`, go:'t-'+pend[0]});
+  });
+  FINAL.forEach(c=>{
+    const m=EQ.filter(eq=>!effF(c.id,eq)); if(m.length) out.push({sev:'warn', msg:`Calificación final "${c.t}": falta en ${m.join(', ')}.`, go:'f-'+c.id});
+    const need=EQ.filter(eq=>['AO','NoA'].includes(effF(c.id,eq))); if(need.length && !(cur.finalObs[c.id]||'').trim()) out.push({sev:'err', msg:`"${c.t}" calificado AO/NoA en ${need.join(', ')} sin observación principal.`, go:'f-'+c.id});
+  });
+  SIGS.forEach(s=>{ const f=cur.firmas[s.id];
+    if(!f.nombre.trim()) out.push({sev:'warn', msg:`Firmas: falta el nombre de "${s.t}".`, go:'s-S'});
+    if(!f.img) out.push({sev:'err', msg:`Firmas: falta la firma de "${s.t}".`, go:'s-S'}); });
+  return out;
+}
+function showReview(){
+  const v=validate(), e=v.filter(x=>x.sev==='err').length, w=v.length-e;
+  $('#reviewBody').innerHTML = !v.length ? '<div class="allok">✓ El formulario está completo: todas las tareas marcadas, observaciones y fotos de las fallas registradas, y las 3 firmas.</div>'
+    : `<p style="margin-top:0"><b>${e}</b> error(es) y <b>${w}</b> advertencia(s). Toca un ítem para ir a él.</p>` +
+      v.sort((a,b)=>(a.sev==='err'?0:1)-(b.sev==='err'?0:1)).map(x=>`<div class="issue ${x.sev}" data-goto="${x.go}"><span class="ic">${x.sev==='err'?'●':'▲'}</span><span>${esc(x.msg)}</span></div>`).join('');
+  $('#dlgReview').showModal();
+}
+$('#reviewBody').addEventListener('click', e=>{ const i=e.target.closest('[data-goto]'); if(!i) return; $('#dlgReview').close(); const t=document.getElementById(i.dataset.goto); if(t){ t.scrollIntoView({behavior:'smooth',block:'start'}); if(t.tagName==='INPUT') setTimeout(()=>t.focus(),400); } });
+$('#btnReview').onclick = showReview;
+
+/* ============================================================
+   PDF (vía impresión del navegador → "Guardar como PDF")
+   ============================================================ */
+function sCell(k,eq){
+  const s=effS(k,eq), v=(cur.cells[k+'|'+eq]?.v||'').trim();
+  const sym = s ? `<span class="s-${s}">${SYM[s]}</span>` : '';
+  return [esc(v), sym].filter(Boolean).join(' ');
+}
+function buildReport(){
+  const h=cur.header;
+  let o=`<h1>ANEXO: CHECK LIST DE TERRENO</h1>
+  <div class="subt">Revisión de ventiladores de inyección y extracción, y del VDF, previa al retrofit de los equipos TRANE Voyager</div>
+  <h2>Datos de la inspección</h2>
+  <table><tr><th style="width:22%">Fecha</th><td>${esc(fmtDate(h.fecha))}</td><th style="width:22%">Cliente y ubicación</th><td>${esc(h.cliente)}</td></tr>
+  <tr><th>Equipo</th><td>${esc(h.equipo)}</td><th>Tag o N° de serie</th><td>${esc(h.tag)}</td></tr>
+  <tr><th>Técnico Grupo de Control</th><td>${esc(h.tecControl)}</td><th>Técnico Grupo de Servicio Técnico</th><td>${esc(h.tecServicio)}</td></tr>
+  <tr><th>Hora de inicio</th><td>${esc(h.horaIni)}</td><th>Hora de término</th><td>${esc(h.horaFin)}</td></tr></table>
+  <div class="legend-p">✓ en buen estado · ✗ con falla u observación · N/A no aplica</div>`;
+  SECTIONS.forEach(s=>{
+    o+=`<h2>${esc(s.title)}${s.exhaust&&EQ.some(eq=>cur.noExh[eq])?` (sin extractor: ${EQ.filter(eq=>cur.noExh[eq]).join(', ')})`:''}</h2>
+    <table><thead><tr><th>N°</th><th>Tarea</th>${EQ.map(eq=>`<th>Equipo ${eq}</th>`).join('')}<th style="width:28%">Observación</th></tr></thead><tbody>`;
+    s.groups.forEach(g=>{
+      if(g.title) o+=`<tr class="grp"><td colspan="6">${esc(g.title)}</td></tr>`;
+      g.rows.forEach(rw=>{ const k=s.id+rw[0]; const np=curPhotos.filter(p=>p.row===k).length;
+        o+=`<tr><td class="n">${rw[0]}</td><td>${esc(rw[1])}</td>${EQ.map(eq=>`<td class="c">${sCell(k,eq)}</td>`).join('')}<td>${esc(cur.obs[k]||'')}${np?` <i>(${np} foto${np>1?'s':''})</i>`:''}</td></tr>`; });
+    });
+    o+='</tbody></table>';
+  });
+  o+=`<div class="avoid"><h2>F. Calificación final de los componentes</h2>
+  <div class="legend-p">A: Apto · AO: Apto con observaciones · NoA: No apto</div>
+  <table><thead><tr><th>Componente</th>${EQ.map(eq=>`<th>Equipo ${eq}</th>`).join('')}<th style="width:32%">Observación principal</th></tr></thead><tbody>
+  ${FINAL.map(c=>`<tr><td>${esc(c.t)}</td>${EQ.map(eq=>{const v=effF(c.id,eq);return `<td class="c"><b>${v==='NA'?'N/A':esc(v)}</b></td>`;}).join('')}<td>${esc(cur.finalObs[c.id]||'')}</td></tr>`).join('')}
+  </tbody></table></div>
+  <div class="avoid"><h2>G. Observaciones generales</h2><table><tr><td style="height:18mm;white-space:pre-wrap">${esc(cur.obsGen||'')}</td></tr></table></div>
+  <div class="avoid"><h2>Firmas</h2><table><thead><tr><th>Cargo</th><th>Nombre</th><th>Firma</th><th>Fecha</th></tr></thead><tbody>
+  ${SIGS.map(s=>{const f=cur.firmas[s.id]; return `<tr><td>${esc(s.t)}</td><td>${esc(f.nombre)}</td><td style="height:22mm">${f.img?`<img class="sigimg" src="${f.img}" alt="Firma">`:''}</td><td>${esc(fmtDate(f.fecha))}${f.ts?`<br><small>${fmtTs(f.ts)}</small>`:''}</td></tr>`;}).join('')}
+  </tbody></table></div>`;
+  const ordered=[...curPhotos].sort((a,b)=>{ const ia=ROWS.findIndex(r=>r.key===a.row), ib=ROWS.findIndex(r=>r.key===b.row); return (ia<0?999:ia)-(ib<0?999:ib) || a.ts-b.ts; });
+  if(ordered.length) o+=`<h2 style="page-break-before:always">Registro fotográfico</h2><div class="pgrid">${ordered.map(p=>`<figure><img src="${p.data}" alt=""><figcaption><b>${esc(p.row)}${p.eq?' · '+esc(p.eq):''}</b> — ${esc(ROW[p.row]?.t||'Observaciones generales')}</figcaption></figure>`).join('')}</div>`;
+  o+=`<div class="foot">Generado el ${fmtTs(Date.now())} · ID ${esc(cur.id)}</div>`;
+  $('#print').innerHTML=o;
+}
+async function makePdf(){
+  await saveNow(); buildReport();
+  const old=document.title; document.title=`CheckList_${cur.header.cliente.replace(/\s+/g,'')}_${cur.header.fecha}`;
+  await Promise.all($$('#print img').map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r;})));
+  setTimeout(()=>{ window.print(); setTimeout(()=>document.title=old, 1000); }, 100);
+}
+$('#btnPdf').onclick = ()=>{ const errs=validate().filter(x=>x.sev==='err'); if(errs.length) showReview(); else makePdf(); };
+$('#btnPdfAnyway').onclick = ()=>{ $('#dlgReview').close(); makePdf(); };
+
+/* ============================================================
+   RESPALDO JSON (exportar / importar)
+   ============================================================ */
+async function exportJson(ins){
+  if(cur && ins.id===cur.id) await saveNow();
+  const photos=await dbPhotosOf(ins.id);
+  const blob=new Blob([JSON.stringify({format:'efintel-checklist-voyager', version:1, exported:Date.now(), insp:ins, photos})],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`Respaldo_${ins.header.cliente.replace(/\s+/g,'')}_${ins.header.fecha}_${ins.id.slice(-4)}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  toast('Respaldo descargado');
+}
+$('#btnJson').onclick = ()=>exportJson(cur);
+$('#importFile').addEventListener('change', async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  try{
+    const d=JSON.parse(await f.text());
+    if(d.format!=='efintel-checklist-voyager' || !d.insp?.id) throw new Error('El archivo no es un respaldo de este formulario.');
+    const exists=(await dbAll('insp')).some(x=>x.id===d.insp.id);
+    if(exists && !await confirmDlg('Importar respaldo','Esta inspección ya existe en la tablet. ¿Reemplazarla con la versión del respaldo?','Reemplazar')) return;
+    if(exists) for(const p of await dbPhotosOf(d.insp.id)) await dbDel('photos',p.id);
+    await dbPut('insp', d.insp); for(const p of (d.photos||[])) await dbPut('photos', p);
+    toast('Respaldo importado'); showHome();
+  }catch(err){ toast('Error al importar: '+err.message); }
+});
+
+/* ============================================================
+   INICIO
+   ============================================================ */
+(async ()=>{
+  db = await openDB();
+  if(!db) toast('Aviso: el almacenamiento no está disponible; los datos se perderán al cerrar.');
+  try{ navigator.storage?.persist?.(); }catch(e){}
+  showHome();
+})();
+
+/* ============================================================
+   APP INSTALABLE Y OFFLINE (PWA)
+   ============================================================ */
+function netState(){ const p=$('#netPill'); p.textContent=navigator.onLine?'En línea':'Sin conexión (los datos se siguen guardando)'; p.classList.toggle('off',!navigator.onLine); }
+window.addEventListener('online',netState); window.addEventListener('offline',netState); netState();
+
+let deferredInstall=null;
+window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferredInstall=e; $('#btnInstall').classList.remove('hidden'); });
+$('#btnInstall').onclick = async ()=>{ if(!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall=null; $('#btnInstall').classList.add('hidden'); };
+window.addEventListener('appinstalled', ()=>toast('App instalada en la pantalla de inicio'));
+
+if('serviceWorker' in navigator && location.protocol!=='file:'){
+  window.addEventListener('load', async ()=>{
+    try{
+      const reg=await navigator.serviceWorker.register('sw.js');
+      if(navigator.serviceWorker.controller || reg.active) $('#offReady').classList.remove('hidden');
+      navigator.serviceWorker.ready.then(()=>$('#offReady').classList.remove('hidden'));
+      const offerUpdate = w => {
+        if(document.querySelector('.upd')) return;
+        const b=document.createElement('div'); b.className='upd';
+        b.innerHTML='<span>Hay una versión nueva del formulario. Tus inspecciones se conservan.</span><button class="btn primary">Actualizar</button>';
+        b.querySelector('button').onclick=async ()=>{ if(saveT) await saveNow(); w.postMessage('skipWaiting'); };
+        document.body.appendChild(b);
+      };
+      if(reg.waiting && navigator.serviceWorker.controller) offerUpdate(reg.waiting);
+      reg.addEventListener('updatefound', ()=>{ const w=reg.installing; w?.addEventListener('statechange', ()=>{ if(w.state==='installed' && navigator.serviceWorker.controller) offerUpdate(w); }); });
+      let reloading=false;
+      navigator.serviceWorker.addEventListener('controllerchange', ()=>{ if(reloading) return; reloading=true; location.reload(); });
+      if(navigator.onLine) reg.update().catch(()=>{});
+    }catch(e){ console.warn('Service worker no registrado', e); }
+  });
+}
+</script>
+</body>
+</html>
