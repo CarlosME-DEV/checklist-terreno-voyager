@@ -103,6 +103,10 @@ input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid c
 .seg button.on[data-s="bad"]{background:var(--bad);border-color:var(--bad);color:#fff}
 .seg button.on[data-s="na"]{background:var(--na);border-color:var(--na);color:#fff}
 .obsrow{display:flex;gap:8px;margin-top:10px;align-items:flex-start}
+.eqobs{display:none;margin-top:6px;min-height:40px;padding:8px 10px;font-size:14px}
+.eqo-btn{margin-top:6px;width:100%;border:1px dashed var(--line);background:transparent;border-radius:9px;min-height:36px;font-size:13px;color:var(--muted)}
+.eq.show-o .eqobs{display:block}.eq.show-o .eqo-btn{display:none}
+.eq.need-o .eqobs{border-color:var(--bad);box-shadow:0 0 0 2px var(--bad-bg)}
 .obsrow textarea{flex:1}
 .cam{flex:none;display:grid;place-items:center;width:52px;height:46px;border:1px solid var(--line);border-radius:10px;background:#f4f6f8;font-size:22px;cursor:pointer;position:relative}
 .cam input{position:absolute;inset:0;opacity:0;width:100%;cursor:pointer}
@@ -226,6 +230,8 @@ dialog::backdrop{background:rgba(10,25,40,.55)}
   #print .pgrid img{width:100%;height:36mm;object-fit:cover;display:block}
   #print .pgrid figcaption{font-size:7pt;margin-top:0.8mm;color:#333}
   #print tr.phrow td{background:#f6f8fa;padding:1.5mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #print tr.obrow td{background:#fbfcfd;font-size:8.5pt;white-space:pre-wrap;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #print tr.obrow td.n,#print tr.phrow td.n{font-weight:700;color:#0f3d5e}
   #print tr.phrow td.n{font-weight:700;color:#0f3d5e;vertical-align:middle}
   #print .phlbl{font-size:8pt;font-weight:700;color:#0f3d5e;margin-bottom:1.2mm}
   #print .sigimg{height:20mm;max-width:60mm;display:block}
@@ -1094,13 +1100,15 @@ function eqCell(r, eq){
     <div class="eq-l">${esc(eqName(eq))}</div>
     ${r.m?`<input class="val" data-f="v" placeholder="${esc(r.m)}" value="${esc(c.v)}" autocomplete="off">`:''}
     <div class="seg">${['ok','bad','na'].map(k=>`<button type="button" data-s="${k}" class="${s===k?'on':''}" aria-label="${esc(eqName(eq))} ${k==='ok'?'en buen estado':k==='bad'?'con falla':'no aplica'}">${SYM[k]}</button>`).join('')}</div>
+    <button type="button" class="eqo-btn" data-eqo>+ Observación</button>
+    <textarea class="eqobs" rows="1" data-f="eo" placeholder="Observación de ${esc(eqName(eq))}">${esc(c.o||'')}</textarea>
   </div>`;
 }
 function taskHTML(r){
   return `<div class="task" id="t-${r.key}" data-key="${r.key}">
     <div class="task-h"><span class="num">${r.n}</span><span class="txt">${esc(r.t)}</span><span class="flag"></span></div>
     <div class="eqs">${EQ.map(eq=>eqCell(r,eq)).join('')}</div>
-    <div class="obsrow"><textarea rows="1" data-f="obs" placeholder="Observación (${r.key})">${esc(cur.obs[r.key]||'')}</textarea>
+    <div class="obsrow"><textarea rows="1" data-f="obs" placeholder="Observación general de la tarea (${r.key})">${esc(cur.obs[r.key]||'')}</textarea>
       <label class="cam" title="Agregar foto">📷<span class="cnt hidden"></span><input type="file" accept="image/*" multiple data-photo="${r.key}"></label></div>
     <div class="photos" data-photos="${r.key}"></div>
   </div>`;
@@ -1186,7 +1194,11 @@ function autoGrow(t){ t.style.height='auto'; t.style.height=Math.max(44,t.scroll
 function updateTask(k){
   const el=$('#t-'+k); if(!el) return;
   const ss=EQ.map(eq=>effS(k,eq)); const hasBad=ss.includes('bad');
-  const obsOk=!!(cur.obs[k]||'').trim(), photoOk=curPhotos.some(p=>p.row===k);
+  const tObs=!!(cur.obs[k]||'').trim();
+  /* cada equipo con ✗ necesita su observación (o la observación general de la tarea) */
+  $$('.eq[data-eq]',el).forEach(d=>{ const eq=d.dataset.eq, o=!!(cur.cells[k+'|'+eq]?.o||'').trim(), bad=effS(k,eq)==='bad';
+    d.classList.toggle('show-o', bad || o || d.classList.contains('open-o')); d.classList.toggle('need-o', bad && !o && !tObs); });
+  const obsOk=EQ.every((eq,i)=>ss[i]!=='bad' || tObs || (cur.cells[k+'|'+eq]?.o||'').trim()), photoOk=curPhotos.some(p=>p.row===k);
   const err = hasBad && (!obsOk || !photoOk);
   el.classList.toggle('has-err', err);
   el.querySelector('.flag').textContent = err ? (!obsOk && !photoOk ? 'Falta obs. y foto' : !obsOk ? 'Falta observación' : 'Falta foto') : '';
@@ -1213,6 +1225,8 @@ $('#form').addEventListener('click', e=>{
       $$('button',sb.parentNode).forEach(b=>b.classList.toggle('on', b.dataset.f===cur.final[id])); }
     scheduleSave(); return;
   }
+  const eo=e.target.closest('[data-eqo]');
+  if(eo){ const d=eo.closest('.eq'); d.classList.add('open-o','show-o'); const ta=$('.eqobs',d); autoGrow(ta); ta.focus(); return; }
   const nb=e.target.closest('[data-now]');
   if(nb){ const k=nb.dataset.now; cur.header[k]=nowHM(); $('#h-'+k).value=cur.header[k]; scheduleSave(); return; }
   const cl=e.target.closest('[data-sclear]');
@@ -1232,6 +1246,7 @@ $('#form').addEventListener('input', e=>{
   if(t.tagName==='TEXTAREA') autoGrow(t);
   if(t.dataset.h){ cur.header[t.dataset.h]=t.value; if(['cliente','fecha'].includes(t.dataset.h)) $('#ftitle').textContent=`${cur.header.cliente||'Sin cliente'} · ${fmtDate(cur.header.fecha)}`; }
   else if(t.dataset.f==='v'){ cell(t.closest('[data-key]').dataset.key, t.closest('.eq').dataset.eq).v=t.value; }
+  else if(t.dataset.f==='eo'){ const k=t.closest('[data-key]').dataset.key; cell(k, t.closest('.eq').dataset.eq).o=t.value; updateTask(k); }
   else if(t.dataset.f==='obs'){ const k=t.closest('[data-key]').dataset.key; cur.obs[k]=t.value; updateTask(k); }
   else if(t.dataset.f==='obsGen'){ cur.obsGen=t.value; }
   else if(t.dataset.fobs){ cur.finalObs[t.dataset.fobs]=t.value; }
@@ -1419,7 +1434,8 @@ function validate(){
     const ss=EQ.map(eq=>effS(r.key,eq));
     if(ss.includes('bad')){
       const bad=nm(EQ.filter((eq,i)=>ss[i]==='bad'));
-      if(!(cur.obs[r.key]||'').trim()) out.push({sev:'err', msg:`${r.key} (${bad}) marcada ✗ sin observación.`, go:'t-'+r.key});
+      const sinObs = (cur.obs[r.key]||'').trim() ? [] : EQ.filter((eq,i)=>ss[i]==='bad' && !(cur.cells[r.key+'|'+eq]?.o||'').trim());
+      if(sinObs.length) out.push({sev:'err', msg:`${r.key} (${nm(sinObs)}) marcada ✗ sin observación.`, go:'t-'+r.key});
       if(!curPhotos.some(p=>p.row===r.key)) out.push({sev:'err', msg:`${r.key} (${bad}) marcada ✗ sin registro fotográfico.`, go:'t-'+r.key});
     }
     if(r.m) EQ.forEach((eq,i)=>{ if((ss[i]==='ok'||ss[i]==='bad') && !(cur.cells[r.key+'|'+eq]?.v||'').trim()) out.push({sev:'warn', msg:`${r.key} · ${eqName(eq)}: medición marcada pero sin valor anotado.`, go:'t-'+r.key}); });
@@ -1492,7 +1508,11 @@ function buildReport(){
           /* fotos de la tarea: en el bloque de su equipo; las «General» en el primer bloque */
           const ph=curPhotos.filter(p=>p.row===k && (E.includes(p.eq) || (ci===0 && !EQ.includes(p.eq)))).sort((a,b)=>a.ts-b.ts);
           o+=`<tr><td class="n">${n}</td><td>${esc(tk_.t)}</td>${E.map(eq=>`<td class="c">${sCell(k,eq)}</td>`).join('')}<td>${ci===0?esc(cur.obs[k]||''):''}</td></tr>`;
-          if(ph.length) o+=`<tr class="phrow"><td class="n">${n}.1</td><td colspan="${E.length+2}">${photoGrid(ph, k, 'Registro fotográfico de la tarea '+n)}</td></tr>`; });
+          /* una fila por cada observación de equipo, con sub-índice; luego la fila de fotos */
+          let sub=0;
+          E.forEach(eq=>{ const ob=(cur.cells[k+'|'+eq]?.o||'').trim(); if(!ob) return; sub++;
+            o+=`<tr class="obrow"><td class="n">${n}.${sub}</td><td colspan="${E.length+2}"><b>Observación · ${esc(eqName(eq))}:</b> ${esc(ob)}</td></tr>`; });
+          if(ph.length) o+=`<tr class="phrow"><td class="n">${n}.${++sub}</td><td colspan="${E.length+2}">${photoGrid(ph, k, 'Registro fotográfico de la tarea '+n)}</td></tr>`; });
       });
       o+='</tbody></table>';
     });
