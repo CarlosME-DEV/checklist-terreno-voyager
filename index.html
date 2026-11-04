@@ -15,6 +15,24 @@
 .pill.off{background:#fff1d6;color:#a15c00}
 .upd{position:fixed;left:12px;right:12px;top:12px;z-index:60;background:#15202b;color:#fff;border-radius:12px;padding:10px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.3)}
 .upd span{flex:1}
+/* encabezado Efintel */
+.brand{display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:center;background:#fff;border:1px solid #d5dde3;border-top:5px solid #0079a9;border-radius:14px;padding:14px 18px;margin:0 0 14px}
+.brand img{height:64px;width:auto;display:block}
+.brand .b1{font-size:13px;font-weight:800;letter-spacing:.06em;color:#5d5d5d}
+.brand .b2{font-size:18px;font-weight:800;color:#0079a9;letter-spacing:.02em}
+.brand .b3{font-size:13px;color:#5b6b78;margin-top:2px}
+.brand .bc{font-size:13px;line-height:1.55;color:#4a4a4a;text-align:right;border-left:1px solid #d5dde3;padding-left:16px}
+.brand .bc a{color:inherit;text-decoration:none}
+@media (max-width:760px){.brand{grid-template-columns:1fr}.brand .bc{text-align:left;border-left:0;padding-left:0;border-top:1px solid #d5dde3;padding-top:8px}.brand img{height:52px}}
+@media print{
+  #print .pbrand{width:100%;border-collapse:collapse;margin-bottom:3mm}
+  #print .pbrand td{border:0;border-bottom:0.6mm solid #0079a9;vertical-align:middle;padding:0 0 2mm}
+  #print .pbrand img{height:15mm;display:block}
+  #print .pbrand .pt{text-align:center}
+  #print .pbrand .pt .b1{font-size:8.5pt;font-weight:700;letter-spacing:.05em;color:#5d5d5d}
+  #print .pbrand .pt .b2{font-size:12pt;font-weight:700;color:#0079a9;margin-top:.5mm}
+  #print .pbrand .pc{text-align:right;font-size:7.5pt;line-height:1.4;color:#444;width:52mm}
+}
 
 :root{
   --bg:#eef2f5; --card:#ffffff; --ink:#15202b; --muted:#5b6b78; --line:#d5dde3;
@@ -191,6 +209,7 @@ dialog::backdrop{background:rgba(10,25,40,.55)}
 <section id="home">
   <div class="top"><div class="top-row"><h1>Check List de Terreno · Retrofit TRANE Voyager</h1></div></div>
   <main>
+    <div id="homeBrand"></div>
     <div class="appbar">
       <span class="pill" id="netPill">En línea</span>
       <span class="pill hidden" id="offReady">✓ Disponible sin conexión</span>
@@ -352,6 +371,25 @@ const SIGS = [
   {id:'cli',  t:'Representante del cliente'},
 ];
 const SYM = {ok:'✓', bad:'✗', na:'N/A'};
+
+/* Datos de Efintel (encabezado del Descriptor de Trabajos) */
+const EFINTEL = {
+  sistema: 'SISTEMA DE GESTIÓN DE OPERACIONES',
+  documento: 'DESCRIPTOR DE TRABAJOS',
+  direccion: 'Juan Martínez de Rozas 634, Concepción.',
+  email: 'contacto@efintel.cl',
+  fono: '+56 41 2699806',
+  web: 'www.efintel.cl',
+};
+function brandHTML(){
+  return `<header class="brand">
+    <img src="logo.png" alt="Efintel — eficiencia energética inteligente">
+    <div><div class="b1">${EFINTEL.sistema}</div><div class="b2">${EFINTEL.documento}</div>
+      <div class="b3">Anexo: Check list de terreno · Revisión de ventiladores y VDF previa al retrofit TRANE Voyager</div></div>
+    <div class="bc">${EFINTEL.direccion}<br><a href="mailto:${EFINTEL.email}">${EFINTEL.email}</a><br><a href="tel:${EFINTEL.fono.replace(/\s/g,'')}">${EFINTEL.fono}</a><br><a href="https://${EFINTEL.web}" target="_blank" rel="noopener">${EFINTEL.web}</a></div>
+  </header>`;
+}
+document.getElementById('homeBrand').outerHTML = brandHTML();
 
 /* índice de filas */
 const ROWS = [];
@@ -515,7 +553,7 @@ function taskHTML(r){
 function renderForm(){
   const h=cur.header;
   const fld=(k,l,type='text',ro=false,now=false)=>`<div class="field"><label for="h-${k}">${l}</label>${now?'<div class="inrow">':''}<input id="h-${k}" type="${type}" data-h="${k}" value="${esc(h[k])}" ${ro?'readonly':''}>${now?`<button type="button" class="mini" data-now="${k}">Ahora</button></div>`:''}</div>`;
-  let html = `
+  let html = brandHTML() + `
   <h2 class="sec-title" id="s-H">Datos de la inspección</h2>
   <div class="note">En cada equipo marque <b>✓</b> (en buen estado), <b>✗</b> (con falla u observación) o <b>N/A</b> (no aplica). En las tareas de medición anote el valor y la unidad. Los ventiladores no se hacen girar: las pruebas de motores y VDF se realizan con las correas retiradas. <b>Toda tarea marcada con ✗ debe tener observación y registro fotográfico.</b></div>
   <div class="card"><div class="grid2">
@@ -770,7 +808,10 @@ function sCell(k,eq){
 }
 function buildReport(){
   const h=cur.header;
-  let o=`<h1>ANEXO: CHECK LIST DE TERRENO</h1>
+  let o=`<table class="pbrand"><tr><td style="width:45mm"><img src="logo.png" alt="Efintel"></td>
+    <td class="pt"><div class="b1">${EFINTEL.sistema}</div><div class="b2">${EFINTEL.documento}</div></td>
+    <td class="pc">${EFINTEL.direccion}<br>${EFINTEL.email}<br>${EFINTEL.fono}<br>${EFINTEL.web}</td></tr></table>
+  <h1>ANEXO: CHECK LIST DE TERRENO</h1>
   <div class="subt">Revisión de ventiladores de inyección y extracción, y del VDF, previa al retrofit de los equipos TRANE Voyager</div>
   <h2>Datos de la inspección</h2>
   <table><tr><th style="width:22%">Fecha</th><td>${esc(fmtDate(h.fecha))}</td><th style="width:22%">Cliente y ubicación</th><td>${esc(h.cliente)}</td></tr>

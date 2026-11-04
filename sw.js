@@ -1,6 +1,6 @@
 /* Service worker: deja la app disponible sin conexión.
    Al publicar una versión nueva, sube el número de VERSION. */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = 'checklist-voyager-' + VERSION;
 const FILES = [
   './',
@@ -9,7 +9,8 @@ const FILES = [
   './icon-192.png',
   './icon-512.png',
   './icon-maskable-512.png',
-  './apple-touch-icon.png'
+  './apple-touch-icon.png',
+  './logo.png'
 ];
 
 self.addEventListener('install', e => {
