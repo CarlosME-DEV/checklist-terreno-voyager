@@ -210,6 +210,31 @@ dialog::backdrop{background:rgba(10,25,40,.55)}
   .icard{grid-template-columns:1fr}
   .iacts{justify-content:flex-start}
 }
+
+/* ---------- cámara propia de la app ---------- */
+#dlgCam{max-width:100vw;width:100vw;height:100dvh;max-height:100dvh;margin:0;border-radius:0;background:#000;color:#fff}
+#dlgCam::backdrop{background:#000}
+.camwrap{position:relative;width:100%;height:100%;display:flex;flex-direction:column}
+.camview{position:relative;flex:1;min-height:0;display:grid;place-items:center;overflow:hidden}
+#camVideo{width:100%;height:100%;object-fit:contain;background:#000}
+.camguide{position:absolute;height:86%;aspect-ratio:210/297;max-width:92%;border:3px dashed rgba(255,255,255,.85);border-radius:6px;box-shadow:0 0 0 9999px rgba(0,0,0,.25);pointer-events:none}
+.camtop{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(0,0,0,.75);font-weight:700;flex-wrap:wrap}
+.camtop .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.camtop select{min-height:40px;border-radius:10px;border:0;padding:0 10px;font-size:15px;max-width:45vw}
+.camcnt{background:var(--brand-2);border-radius:999px;padding:4px 12px;font-size:14px}
+.cammsg{position:absolute;inset:auto 16px 16px 16px;background:rgba(0,0,0,.8);border-radius:12px;padding:14px;font-size:15px;line-height:1.4}
+.cambar{display:flex;align-items:center;justify-content:space-around;gap:10px;padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:rgba(0,0,0,.85)}
+.cbtn{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:76px;min-height:60px;justify-content:center;border:1px solid #555;border-radius:12px;background:#1d1d1d;color:#fff;font-size:22px;cursor:pointer}
+.cbtn[hidden],#dlgCam [hidden]{display:none!important}
+.cbtn span{font-size:12px;font-weight:600}
+.cbtn input{position:absolute;inset:0;opacity:0;width:100%;cursor:pointer}
+.cbtn.on{background:#d08700;border-color:#d08700}
+.cbtn.done{background:var(--ok);border-color:var(--ok)}
+.shutter{width:78px;height:78px;border-radius:50%;border:5px solid #fff;background:#fff;box-shadow:inset 0 0 0 4px #000;flex:none}
+.shutter:active{transform:scale(.94)}
+.shutter:disabled{opacity:.4}
+.camflash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
+.camflash.go{opacity:.8;transition:none}
 /* ---------- impresión / PDF ---------- */
 #print{display:none}
 @media print{
@@ -367,6 +392,26 @@ dialog::backdrop{background:rgba(10,25,40,.55)}
   <div class="dh"><h2 id="cfTitle">Confirmar</h2></div>
   <div class="db" id="cfBody"></div>
   <div class="df"><button class="btn" id="cfNo">Cancelar</button><button class="btn primary" id="cfYes">Aceptar</button></div>
+</dialog>
+<dialog id="dlgCam" aria-label="Cámara">
+  <div class="camwrap">
+    <div class="camtop"><span class="t" id="camTitle">Foto</span>
+      <select id="camEq" aria-label="Equipo de la foto"></select>
+      <span class="camcnt" id="camCount">0 fotos</span></div>
+    <div class="camview">
+      <video id="camVideo" playsinline muted autoplay></video>
+      <div class="camguide" id="camGuide" hidden></div>
+      <div class="cammsg" id="camMsg" hidden></div>
+      <div class="camflash" id="camFlash"></div>
+    </div>
+    <div class="cambar">
+      <label class="cbtn">🖼<span>Galería</span><input type="file" accept="image/*" multiple id="camGal"></label>
+      <button type="button" class="cbtn" id="camTorch" hidden>🔦<span>Linterna</span></button>
+      <button type="button" class="shutter" id="camShot" aria-label="Tomar foto"></button>
+      <label class="cbtn" id="camSys" hidden>📱<span>Cámara del sistema</span><input type="file" accept="image/*" capture="environment" id="camSysIn"></label>
+      <button type="button" class="cbtn done" id="camDone">✓<span>Listo</span></button>
+    </div>
+  </div>
 </dialog>
 <div class="toast" id="toast"></div>
 
@@ -1119,7 +1164,7 @@ function taskHTML(r){
     <div class="task-h"><span class="num">${r.n}</span><span class="txt">${esc(r.t)}</span><span class="flag"></span></div>
     <div class="eqs">${EQ.map(eq=>eqCell(r,eq)).join('')}</div>
     <div class="obsrow"><textarea rows="1" data-f="obs" placeholder="Observación general de la tarea (${r.key})">${esc(cur.obs[r.key]||'')}</textarea>
-      <label class="cam" title="Agregar foto">📷<span class="cnt hidden"></span><input type="file" accept="image/*" multiple data-photo="${r.key}"></label></div>
+      <button type="button" class="cam" data-cam="${r.key}" title="Tomar foto" aria-label="Tomar foto de ${r.key}">📷<span class="cnt hidden"></span></button></div>
     <div class="photos" data-photos="${r.key}"></div>
   </div>`;
 }
@@ -1184,7 +1229,7 @@ function renderForm(){
   html += `<h2 class="sec-title" id="s-OBS">${X.obsL}. Observaciones generales</h2>
   <div class="task" data-key="OBS" id="t-OBS">
     <div class="obsrow" style="margin-top:0"><textarea rows="4" data-f="obsGen" placeholder="Observaciones generales de la inspección">${esc(cur.obsGen||'')}</textarea>
-    <label class="cam" title="Agregar foto general">📷<span class="cnt hidden"></span><input type="file" accept="image/*" multiple data-photo="OBS"></label></div>
+    <button type="button" class="cam" data-cam="OBS" title="Tomar foto general" aria-label="Tomar foto general">📷<span class="cnt hidden"></span></button></div>
     <div class="photos" data-photos="OBS"></div>
   </div>
 
@@ -1196,7 +1241,7 @@ function renderForm(){
   ${ANEXOS.map(a=>`<div class="task" data-key="${a.id}" id="t-${a.id}">
     <div class="task-h"><span class="num">${a.n}</span><span class="txt"><b>${esc(a.t)}</b></span><span class="flag"></span></div>
     <div class="anx-btns">
-      <label class="btn primary">📷 Fotografiar página<input type="file" accept="image/*" capture="environment" data-photo="${a.id}"></label>
+      <button type="button" class="btn primary" data-cam="${a.id}">📷 Fotografiar página</button>
       <label class="btn">🖼 Desde la galería<input type="file" accept="image/*" multiple data-photo="${a.id}"></label>
       <span class="cam" style="display:none"><span class="cnt hidden"></span></span>
     </div>
@@ -1246,6 +1291,8 @@ $('#form').addEventListener('click', e=>{
       $$('button',sb.parentNode).forEach(b=>b.classList.toggle('on', b.dataset.f===cur.final[id])); }
     scheduleSave(); return;
   }
+  const cm=e.target.closest('[data-cam]');
+  if(cm){ openCam(cm.dataset.cam); return; }
   const eo=e.target.closest('[data-eqo]');
   if(eo){ const d=eo.closest('.eq'); d.classList.add('open-o','show-o'); const ta=$('.eqobs',d); autoGrow(ta); ta.focus(); return; }
   const nb=e.target.closest('[data-now]');
@@ -1320,14 +1367,14 @@ $('#eqView').addEventListener('change', e=>{ eqFilter=e.target.value; applyFilte
    FOTOS
    ============================================================ */
 function loadImage(file){ return new Promise((res,rej)=>{ const u=URL.createObjectURL(file), i=new Image(); i.onload=()=>{URL.revokeObjectURL(u);res(i);}; i.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('Imagen no válida'));}; i.src=u; }); }
-async function addPhoto(file, key){
+async function addPhoto(file, key, eqSel){
   try{
     const anx=ANX_BY_ID[key];
     const img=await loadImage(file), max=anx?2600:1600, sc=Math.min(1, max/Math.max(img.naturalWidth,img.naturalHeight));
     const w=Math.round(img.naturalWidth*sc), h=Math.round(img.naturalHeight*sc);
     const c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d');
     x.drawImage(img,0,0,w,h);
-    const eq = anx ? '' : EQ.includes(eqFilter) ? eqFilter : (EQ.length===1 ? EQ[0] : '');
+    const eq = anx ? '' : (eqSel!==undefined && (eqSel==='' || EQ.includes(eqSel))) ? eqSel : EQ.includes(eqFilter) ? eqFilter : (EQ.length===1 ? EQ[0] : '');
     const stamp=`${anx?anx.corto:key==='OBS'?'Obs. general':key}${eq?' · '+eqName(eq):''} · ${cur.header.cliente||''} · ${fmtTs(Date.now())}`, fs=Math.max(14,Math.round(w/(anx?90:55)));
     x.font=`bold ${fs}px Arial`; const tw=x.measureText(stamp).width;
     x.fillStyle='rgba(0,0,0,.55)'; x.fillRect(0,h-fs*1.7,tw+fs*1.2,fs*1.7);
@@ -1350,6 +1397,97 @@ function renderPhotos(key){
     ${anx?`<div class="pgno" style="text-align:center;font-size:13px;font-weight:700;padding:4px">Página ${i+1}</div>`:`<select data-pf="eq" aria-label="Equipo de la foto"><option value="">General</option>${EQ.map(eq=>`<option value="${eq}" ${p.eq===eq?'selected':''}>${esc(eqName(eq))}</option>`).join('')}</select>`}</div>`).join('');
   const cnt=box.closest('.task')?.querySelector('.cam .cnt'); if(cnt){ cnt.textContent=ps.length; cnt.classList.toggle('hidden',!ps.length); }
 }
+/* ============================================================
+   CÁMARA PROPIA: abre directo la cámara trasera (getUserMedia).
+   En algunos Android el atributo capture del input se ignora y
+   solo aparece la galería; por eso la app maneja la cámara.
+   ============================================================ */
+let camKey=null, camStream=null, camTrack=null, camN=0, camBusy=false, camTorchOn=false;
+function camCountTxt(){ $('#camCount').textContent = `${camN} foto${camN===1?'':'s'}`; }
+function camMsg(html){ const m=$('#camMsg'); m.hidden=!html; m.innerHTML=html||''; }
+function camStop(){ if(camStream) camStream.getTracks().forEach(t=>t.stop()); camStream=null; camTrack=null; camTorchOn=false; $('#camVideo').srcObject=null; }
+async function openCam(key){
+  camKey=key; camN=0; camCountTxt(); camMsg('');
+  const anx=ANX_BY_ID[key], r=X.ROW[key];
+  const pages=curPhotos.filter(p=>p.row===key).length;
+  $('#camTitle').textContent = anx ? `${anx.t} · página ${pages+1}` : key==='OBS' ? 'Observaciones generales' : `${key} · ${r?r.t:''}`;
+  $('#camGuide').hidden = !anx;
+  const sel=$('#camEq'); sel.hidden = !!anx || !EQ.length;
+  const def = EQ.includes(eqFilter) ? eqFilter : (EQ.length===1 ? EQ[0] : '');
+  sel.innerHTML = `<option value="">General</option>` + EQ.map(eq=>`<option value="${eq}" ${eq===def?'selected':''}>${esc(eqName(eq))}</option>`).join('');
+  $('#camTorch').hidden=true; $('#camTorch').classList.remove('on'); $('#camSys').hidden=true; $('#camShot').disabled=true;
+  $('#dlgCam').showModal();
+  await camStart();
+}
+let camStarting=null;
+function camStart(){ if(camStream) return Promise.resolve(); return camStarting || (camStarting = camStart_().finally(()=>camStarting=null)); }
+async function camStart_(){
+  if(!navigator.mediaDevices?.getUserMedia){ camFail('Este navegador no permite abrir la cámara desde la app.'); return; }
+  let st;
+  try{
+    st = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:3840}, height:{ideal:2160}}});
+  }catch(e){
+    camFail(e.name==='NotAllowedError' ? 'No hay permiso para usar la cámara. En Chrome toca el candado o el ícono ⓘ junto a la dirección del sitio y activa <b>Cámara</b>. Si usas la app instalada, ve a Ajustes de Android › Aplicaciones › Chrome › Permisos › Cámara. Luego cierra y vuelve a tocar 📷.' : 'No se pudo abrir la cámara ('+esc(e.message||e.name)+').');
+    return;
+  }
+  /* se cerró el diálogo o la app pasó a segundo plano mientras se abría la cámara */
+  if(!$('#dlgCam').open || document.hidden){ st.getTracks().forEach(t=>t.stop()); return; }
+  camStream = st;
+  camTrack = camStream.getVideoTracks()[0];
+  const v=$('#camVideo'); v.srcObject=camStream; try{ await v.play(); }catch(_){}
+  try{ camTrack.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{}); }catch(_){}
+  const cap = camTrack.getCapabilities ? camTrack.getCapabilities() : {};
+  $('#camTorch').hidden = !cap.torch;
+  $('#camShot').disabled=false;
+}
+function camFail(msg){
+  camStop(); $('#camShot').disabled=true; $('#camSys').hidden=false;
+  camMsg(`${msg}<br>Mientras tanto puedes usar <b>Cámara del sistema</b> o <b>Galería</b>.`);
+}
+async function camGrab(){
+  /* foto a resolución completa si el equipo lo permite; si no, un cuadro del video */
+  if('ImageCapture' in window){
+    try{
+      const ic=new ImageCapture(camTrack);
+      const b=await Promise.race([ic.takePhoto(), new Promise((_,rej)=>setTimeout(()=>rej(new Error('lento')),5000))]);
+      if(b && b.size) return b;
+    }catch(_){}
+  }
+  const v=$('#camVideo'), c=document.createElement('canvas'); c.width=v.videoWidth; c.height=v.videoHeight;
+  if(!c.width) throw new Error('la cámara aún no está lista');
+  c.getContext('2d').drawImage(v,0,0);
+  return await new Promise(res=>c.toBlob(res,'image/jpeg',.92));
+}
+async function camShoot(){
+  if(camBusy || !camTrack) return; camBusy=true; $('#camShot').disabled=true;
+  const f=$('#camFlash'); f.classList.add('go'); requestAnimationFrame(()=>requestAnimationFrame(()=>f.classList.remove('go')));
+  try{
+    const blob=await camGrab();
+    await addPhoto(blob, camKey, $('#camEq').value);
+    camN++; camCountTxt();
+    const anx=ANX_BY_ID[camKey]; if(anx) $('#camTitle').textContent=`${anx.t} · página ${curPhotos.filter(p=>p.row===camKey).length+1}`;
+    if(camTorchOn) camTrack?.applyConstraints({advanced:[{torch:true}]}).catch(()=>{});
+  }catch(e){ toast('No se pudo tomar la foto: '+e.message); }
+  camBusy=false; $('#camShot').disabled=!camTrack;
+}
+async function camFiles(input){
+  const files=[...input.files]; input.value='';
+  for(const f of files){ await addPhoto(f, camKey, $('#camEq').value); camN++; camCountTxt(); }
+}
+$('#camShot').onclick = camShoot;
+$('#camGal').onchange = e=>camFiles(e.target);
+$('#camSysIn').onchange = e=>camFiles(e.target);
+$('#camTorch').onclick = async ()=>{
+  if(!camTrack) return; camTorchOn=!camTorchOn;
+  try{ await camTrack.applyConstraints({advanced:[{torch:camTorchOn}]}); }catch(_){ camTorchOn=false; }
+  $('#camTorch').classList.toggle('on', camTorchOn);
+};
+$('#camDone').onclick = ()=>$('#dlgCam').close();
+$('#dlgCam').addEventListener('close', camStop);
+/* si la app pasa a segundo plano se libera la cámara; al volver se reanuda sin cerrar */
+document.addEventListener('visibilitychange', ()=>{ if(!$('#dlgCam').open) return;
+  if(document.hidden){ camStop(); $('#camShot').disabled=true; $('#camTorch').classList.remove('on'); }
+  else if($('#camSys').hidden) camStart(); });
 function photoCaption(p){ if(ANX_BY_ID[p.row]) return ANX_BY_ID[p.row].t; const r=X.ROW[p.row], n=p.eq?eqName(p.eq):''; return `${p.row==='OBS'?X.obsL:p.row}${n?' · '+n:''} — ${r? r.t : 'Observaciones generales'}`; }
 
 /* ============================================================
